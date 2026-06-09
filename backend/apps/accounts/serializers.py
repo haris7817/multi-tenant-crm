@@ -60,6 +60,12 @@ class RegisterSerializer(serializers.Serializer):
             full_name=validated.get("full_name", ""),
         )
         Membership.objects.create(user=user, tenant=tenant, role=Role.OWNER)
+
+        # Give the new workspace a starter deal pipeline. Imported lazily to
+        # avoid an accounts -> crm import at module load.
+        from apps.crm.pipeline import create_default_pipeline
+
+        create_default_pipeline(tenant)
         return {"tenant": tenant, "user": user}
 
 

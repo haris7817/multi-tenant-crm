@@ -42,7 +42,7 @@ your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 - [x] **Phase 0** — Foundation & infra (Django, DRF, Swagger, Docker, smoke test)
 - [x] **Phase 1** — Multi-tenancy core (subdomain middleware, `TenantManager`, isolation tests)
 - [x] **Phase 2** — Accounts, JWT auth & RBAC (custom User, Membership/Role, tenant-bound tokens)
-- [ ] **Phase 3** — Core CRM (leads, deals, tasks)
+- [x] **Phase 3** — Core CRM (Leads, Deals + pipeline/Stages, Tasks; tenant-scoped, role-gated)
 - [ ] **Phase 4** — Activity / audit logs
 - [ ] **Phase 5** — Celery background jobs & email
 - [ ] **Phase 6** — Analytics dashboard
