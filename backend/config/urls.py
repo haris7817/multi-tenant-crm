@@ -25,6 +25,5 @@ urlpatterns = [
     ),
     path("api/", include("apps.tenants.urls")),
     path("api/", include("apps.accounts.urls")),
-    # App routes are wired up in later phases:
-    # path("api/", include("apps.crm.urls")),
+    path("api/", include("apps.crm.urls")),
 ]
