@@ -10,10 +10,10 @@ class LeadSerializer(serializers.ModelSerializer):
         model = Lead
         fields = [
             "id", "name", "email", "phone", "company", "source",
-            "status", "notes", "owner", "owner_email",
+            "status", "notes", "owner", "owner_email", "is_stale",
             "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at", "owner_email"]
+        read_only_fields = ["id", "created_at", "updated_at", "owner_email", "is_stale"]
 
 
 class StageSerializer(serializers.ModelSerializer):

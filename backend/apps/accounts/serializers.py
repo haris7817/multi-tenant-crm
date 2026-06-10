@@ -66,6 +66,8 @@ class RegisterSerializer(serializers.Serializer):
         from apps.crm.pipeline import create_default_pipeline
 
         create_default_pipeline(tenant)
+
+        _enqueue_welcome(user.id, tenant.id)
         return {"tenant": tenant, "user": user}
 
 
@@ -101,7 +103,16 @@ class InviteSerializer(serializers.Serializer):
         )
         if not m_created:
             raise serializers.ValidationError("User is already a member.")
+
+        _enqueue_welcome(user.id, tenant.id)
         return membership
+
+
+def _enqueue_welcome(user_id, tenant_id):
+    """Send the welcome email after the surrounding transaction commits."""
+    from apps.emails.tasks import send_welcome_email
+
+    transaction.on_commit(lambda: send_welcome_email.delay(user_id, tenant_id))
 
 
 class RoleUpdateSerializer(serializers.ModelSerializer):

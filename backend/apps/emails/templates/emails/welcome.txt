@@ -1,0 +1,8 @@
+Hi {{ user.full_name|default:user.email }},
+
+You've been added to the {{ tenant.name }} workspace on our CRM.
+
+Sign in at: http://{{ tenant.slug }}.crm.local
+
+Happy selling!
+The {{ tenant.name }} team

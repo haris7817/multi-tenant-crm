@@ -1,9 +1,11 @@
+from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.accounts.models import Role
+from apps.activity.models import AuditLog
 from apps.common.viewsets import TenantModelViewSet
 
 from .filters import DealFilter, LeadFilter, TaskFilter
@@ -57,6 +59,14 @@ class DealViewSet(TenantModelViewSet):
         deal.stage = stage
         deal.closed_at = timezone.now() if (stage.is_won or stage.is_lost) else None
         deal.save()
+        self._audit(AuditLog.Action.UPDATED, deal, changes={"stage": [None, stage.name]})
+
+        if stage.is_won:
+            # Notify the owner once the change is durably committed.
+            from apps.emails.tasks import send_deal_won_email
+
+            transaction.on_commit(lambda: send_deal_won_email.delay(deal.id))
+
         return Response(DealSerializer(deal, context=self.get_serializer_context()).data)
 
     @extend_schema(responses=DealSerializer(many=True))

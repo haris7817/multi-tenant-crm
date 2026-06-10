@@ -28,6 +28,17 @@ docker compose up --build       # starts db, redis, web
 docker compose run --rm web pytest
 ```
 
+## Background jobs (Celery)
+
+```bash
+docker compose up -d celery-worker celery-beat   # start worker + scheduler
+docker compose logs -f celery-worker             # watch tasks run
+```
+
+Async emails (welcome on signup/invite, deal-won notifications) use the console
+backend in dev — they print in the **worker** logs. The scheduled `flag_stale_leads`
+sweep runs daily via Celery Beat.
+
 ## Local subdomains (Phase 1+)
 
 Tenants are addressed by subdomain. For local dev, map a few to `127.0.0.1` in
@@ -44,7 +55,7 @@ your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 - [x] **Phase 2** — Accounts, JWT auth & RBAC (custom User, Membership/Role, tenant-bound tokens)
 - [x] **Phase 3** — Core CRM (Leads, Deals + pipeline/Stages, Tasks; tenant-scoped, role-gated)
 - [x] **Phase 4** — Activity / audit logs (auto-recorded on every write, field diffs, timeline API)
-- [ ] **Phase 5** — Celery background jobs & email
+- [x] **Phase 5** — Celery background jobs & email (worker + beat, welcome/deal-won emails, stale-lead sweep)
 - [ ] **Phase 6** — Analytics dashboard
 - [ ] **Phase 7** — React + Vite frontend
 ```
