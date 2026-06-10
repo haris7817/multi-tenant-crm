@@ -1,0 +1,466 @@
+{
+  "info": {
+    "name": "Multi-Tenant CRM (Phases 0-4)",
+    "_postman_id": "b1a2c3d4-0004-4a00-8000-crm0000004",
+    "description": "API collection for the multi-tenant SaaS CRM, covering Phases 0-4: tenancy, JWT auth, RBAC, members, leads, pipeline/stages, deals, tasks, and the audit/activity feed.\n\n## How tenancy works\nThe API selects the tenant from the request **subdomain** (e.g. `acme.crm.local`). This collection sends that subdomain as a `Host` header automatically (see the collection Pre-request Script), so it works against `http://localhost:8000` **without** editing your hosts file.\n\n## Setup\n1. Start the stack: `docker compose up -d` and seed: `docker compose run --rm web python manage.py seed_tenants`.\n2. Pick a tenant by setting the `tenant` variable (`acme` or `globex`).\n3. Run **Auth > Login** first — it stores `access_token` / `refresh_token` for every other request.\n\n## Demo users (password `password123`)\n`owner@acme.crm.local`, `admin@acme.crm.local`, `manager@acme.crm.local`, `sales_rep@acme.crm.local`, `viewer@acme.crm.local` (and the same for `globex`).\n\n## RBAC quick reference\n- read = any member  - create/update = Sales Rep+  - delete = Manager+  - manage members / create stages = Manager/Admin+",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Route the request to the right tenant by sending the subdomain as Host.",
+          "var tenant = pm.variables.get('tenant') || 'acme';",
+          "pm.request.headers.upsert({ key: 'Host', value: tenant + '.crm.local' });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "tenant", "value": "acme" },
+    { "key": "email", "value": "owner@acme.crm.local" },
+    { "key": "password", "value": "password123" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "lead_id", "value": "" },
+    { "key": "stage_id", "value": "" },
+    { "key": "won_stage_id", "value": "" },
+    { "key": "deal_id", "value": "" },
+    { "key": "task_id", "value": "" },
+    { "key": "member_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register (new workspace)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register", ""] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_name\": \"New Co\",\n  \"slug\": \"newco\",\n  \"email\": \"founder@newco.crm.local\",\n  \"password\": \"password123\"\n}"
+            },
+            "description": "Public onboarding: creates a new tenant + Owner user + `<slug>.crm.local` subdomain. To use the new workspace, set `tenant` = the slug and log in."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.code === 200);",
+                  "var j = pm.response.json();",
+                  "pm.collectionVariables.set('access_token', j.access);",
+                  "pm.collectionVariables.set('refresh_token', j.refresh);",
+                  "pm.test('got tokens', () => !!j.access && !!j.refresh);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "description": "Authenticate against the current `tenant` subdomain. Stores `access_token` + `refresh_token`."
+          }
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.code === 200);",
+                  "var j = pm.response.json();",
+                  "if (j.access) pm.collectionVariables.set('access_token', j.access);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}" }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/auth/me/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "me", ""] },
+            "description": "Current user, role, and tenant."
+          }
+        },
+        {
+          "name": "Tenant info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/tenant/", "host": ["{{baseUrl}}"], "path": ["api", "tenant", ""] },
+            "description": "Resolve the tenant from the subdomain (404 for unknown subdomains)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Members",
+      "item": [
+        {
+          "name": "List members",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json().results || [];",
+                  "if (r.length) pm.collectionVariables.set('member_id', r[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/members/", "host": ["{{baseUrl}}"], "path": ["api", "members", ""] }
+          }
+        },
+        {
+          "name": "Invite member (Admin+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/members/", "host": ["{{baseUrl}}"], "path": ["api", "members", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"newhire@{{tenant}}.crm.local\",\n  \"role\": \"sales_rep\",\n  \"password\": \"password123\"\n}" },
+            "description": "Add a member to the current tenant. Requires Admin role or higher."
+          }
+        },
+        {
+          "name": "Update member role (Admin+)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/members/{{member_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "members", "{{member_id}}", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"manager\"\n}" }
+          }
+        },
+        {
+          "name": "Remove member (Admin+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/members/{{member_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "members", "{{member_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leads",
+      "item": [
+        {
+          "name": "List leads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/?status=&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leads", ""],
+              "query": [
+                { "key": "status", "value": "", "description": "new|contacted|qualified|unqualified|converted" },
+                { "key": "search", "value": "", "description": "matches name/email/company" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create lead (Sales Rep+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.code === 201);",
+                  "pm.collectionVariables.set('lead_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/leads/", "host": ["{{baseUrl}}"], "path": ["api", "leads", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Buyer\",\n  \"email\": \"jane@buyco.example\",\n  \"company\": \"BuyCo\",\n  \"status\": \"new\",\n  \"source\": \"website\"\n}" }
+          }
+        },
+        {
+          "name": "Retrieve lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/leads/{{lead_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "{{lead_id}}", ""] }
+          }
+        },
+        {
+          "name": "Update lead (Sales Rep+)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/leads/{{lead_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "{{lead_id}}", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"qualified\"\n}" },
+            "description": "Updating produces an audit entry with a field diff (see Activity folder)."
+          }
+        },
+        {
+          "name": "Delete lead (Manager+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/leads/{{lead_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "{{lead_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stages (Pipeline)",
+      "item": [
+        {
+          "name": "List stages",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json().results || [];",
+                  "if (r.length) pm.collectionVariables.set('stage_id', r[0].id);",
+                  "var won = r.find(function(s){return s.is_won;});",
+                  "if (won) pm.collectionVariables.set('won_stage_id', won.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/stages/", "host": ["{{baseUrl}}"], "path": ["api", "stages", ""] },
+            "description": "Saves the first stage id to `stage_id` and the Won stage to `won_stage_id`."
+          }
+        },
+        {
+          "name": "Create stage (Manager+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/stages/", "host": ["{{baseUrl}}"], "path": ["api", "stages", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Demo\",\n  \"order\": 9\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deals",
+      "item": [
+        {
+          "name": "List deals",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/deals/?stage=&min_value=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "deals", ""],
+              "query": [
+                { "key": "stage", "value": "", "description": "stage id" },
+                { "key": "min_value", "value": "", "description": "minimum deal value" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pipeline board (kanban)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/deals/pipeline/", "host": ["{{baseUrl}}"], "path": ["api", "deals", "pipeline", ""] },
+            "description": "Deals grouped by stage — the data behind a kanban board."
+          }
+        },
+        {
+          "name": "Create deal (Sales Rep+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.code === 201);",
+                  "pm.collectionVariables.set('deal_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/deals/", "host": ["{{baseUrl}}"], "path": ["api", "deals", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"BuyCo expansion\",\n  \"value\": \"5000.00\",\n  \"stage\": {{stage_id}},\n  \"lead\": {{lead_id}}\n}" },
+            "description": "Run 'List stages' and 'Create lead' first to populate {{stage_id}} and {{lead_id}}."
+          }
+        },
+        {
+          "name": "Retrieve deal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/deals/{{deal_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "deals", "{{deal_id}}", ""] }
+          }
+        },
+        {
+          "name": "Update deal (Sales Rep+)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/deals/{{deal_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "deals", "{{deal_id}}", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"value\": \"7500.00\"\n}" }
+          }
+        },
+        {
+          "name": "Move deal to stage (Sales Rep+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/deals/{{deal_id}}/move/", "host": ["{{baseUrl}}"], "path": ["api", "deals", "{{deal_id}}", "move", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"stage\": {{won_stage_id}}\n}" },
+            "description": "Moves the deal; entering a Won/Lost stage stamps closed_at. Run 'List stages' first to set {{won_stage_id}}."
+          }
+        },
+        {
+          "name": "Delete deal (Manager+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/deals/{{deal_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "deals", "{{deal_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "List tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tasks/?is_done=&priority=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tasks", ""],
+              "query": [
+                { "key": "is_done", "value": "", "description": "true|false" },
+                { "key": "priority", "value": "", "description": "low|medium|high" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create task (Sales Rep+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.code === 201);",
+                  "pm.collectionVariables.set('task_id', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/tasks/", "host": ["{{baseUrl}}"], "path": ["api", "tasks", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Call Jane\",\n  \"priority\": \"high\",\n  \"lead\": {{lead_id}}\n}" }
+          }
+        },
+        {
+          "name": "Complete task (Sales Rep+)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{task_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "tasks", "{{task_id}}", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"is_done\": true\n}" }
+          }
+        },
+        {
+          "name": "Delete task (Manager+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/tasks/{{task_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "tasks", "{{task_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Activity (Audit)",
+      "item": [
+        {
+          "name": "List activity",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activity/?action=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activity", ""],
+              "query": [{ "key": "action", "value": "", "description": "created|updated|deleted" }]
+            },
+            "description": "Tenant-scoped audit feed. Read-only (POST returns 405)."
+          }
+        },
+        {
+          "name": "Activity for a lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/activity/?target_model=lead&target_id={{lead_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "activity", ""],
+              "query": [
+                { "key": "target_model", "value": "lead" },
+                { "key": "target_id", "value": "{{lead_id}}" }
+              ]
+            },
+            "description": "Timeline for a single record (created/updated/deleted with field diffs)."
+          }
+        }
+      ]
+    }
+  ]
+}

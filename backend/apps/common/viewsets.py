@@ -13,12 +13,17 @@ from rest_framework.permissions import SAFE_METHODS
 
 from apps.accounts.models import Role
 from apps.accounts.permissions import HasTenantRole, IsTenantMember
+from apps.activity.models import AuditLog
+from apps.activity.services import diff, record
 
 
 class TenantModelViewSet(viewsets.ModelViewSet):
     # Role required to mutate. Override per-resource if needed.
     write_role = Role.SALES_REP
     delete_role = Role.MANAGER
+
+    # Set False on a viewset to skip audit logging for its writes.
+    audit = True
 
     def get_queryset(self):
         # Scope to the active tenant HERE (per request). Subclasses declare
@@ -42,6 +47,8 @@ class TenantModelViewSet(viewsets.ModelViewSet):
             return [HasTenantRole(self.delete_role)()]
         return [HasTenantRole(self.write_role)()]
 
+    # --- writes (each also records an audit entry) ---------------------------
+
     def perform_create(self, serializer):
         # Tenant comes from the request, never from client input. ``owner`` is
         # only defaulted if the model has that field and the client omitted it.
@@ -50,6 +57,33 @@ class TenantModelViewSet(viewsets.ModelViewSet):
         if _has_field(model, "owner") and not serializer.validated_data.get("owner"):
             extra["owner"] = self.request.user
         serializer.save(**extra)
+        self._audit(AuditLog.Action.CREATED, serializer.instance)
+
+    def perform_update(self, serializer):
+        # Snapshot the fields being written so we can diff old vs new.
+        instance = serializer.instance
+        before = {f: getattr(instance, f) for f in serializer.validated_data}
+        serializer.save()
+        after = {f: getattr(serializer.instance, f) for f in before}
+        self._audit(
+            AuditLog.Action.UPDATED, serializer.instance, changes=diff(before, after)
+        )
+
+    def perform_destroy(self, instance):
+        # Record before deleting so target_repr/pk are still available.
+        self._audit(AuditLog.Action.DELETED, instance)
+        instance.delete()
+
+    def _audit(self, action, instance, changes=None):
+        if not self.audit:
+            return
+        record(
+            tenant=self.request.tenant,
+            actor=self.request.user,
+            action=action,
+            instance=instance,
+            changes=changes,
+        )
 
 
 def _has_field(model, name):
