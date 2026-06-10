@@ -463,6 +463,60 @@
       ]
     },
     {
+      "name": "Analytics (Phase 6)",
+      "description": "Tenant-scoped dashboard aggregates. All read-only, any member. The summary is cached in Redis (~60s).",
+      "item": [
+        {
+          "name": "Summary (KPIs)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/summary/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "summary", ""] },
+            "description": "Leads total/stale, open deals + pipeline value, won deals + value, win rate. Cached ~60s per tenant."
+          }
+        },
+        {
+          "name": "Deals by stage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/deals-by-stage/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "deals-by-stage", ""] },
+            "description": "Count + total value per pipeline stage (includes empty stages) — kanban totals."
+          }
+        },
+        {
+          "name": "Leads by status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/leads-by-status/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "leads-by-status", ""] }
+          }
+        },
+        {
+          "name": "Leads over time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/leads-over-time/?days=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "leads-over-time", ""],
+              "query": [{ "key": "days", "value": "30" }]
+            }
+          }
+        },
+        {
+          "name": "Revenue forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/revenue-forecast/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "revenue-forecast", ""] },
+            "description": "Open pipeline value grouped by expected-close month."
+          }
+        }
+      ]
+    },
+    {
       "name": "Background Jobs & Email (Phase 5)",
       "description": "Phase 5 adds **no new REST endpoints** — it runs work asynchronously via Celery.\n\n## Async emails (console backend in dev → printed in worker logs)\n- **Welcome email** — fired by `Auth → Register` and `Members → Invite member`.\n- **Deal-won email** — fired by `Deals → Move deal to stage` when the target stage is **Won**.\n\nStart the workers and watch them run:\n```bash\ndocker compose up -d celery-worker celery-beat\ndocker compose logs -f celery-worker\n```\n\n## Scheduled job\n`flag_stale_leads` runs daily via Celery Beat and sets `is_stale=true` on cold open leads. The result is visible on the Lead API (see the request below).",
       "item": [

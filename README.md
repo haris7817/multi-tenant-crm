@@ -56,6 +56,6 @@ your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 - [x] **Phase 3** — Core CRM (Leads, Deals + pipeline/Stages, Tasks; tenant-scoped, role-gated)
 - [x] **Phase 4** — Activity / audit logs (auto-recorded on every write, field diffs, timeline API)
 - [x] **Phase 5** — Celery background jobs & email (worker + beat, welcome/deal-won emails, stale-lead sweep)
-- [ ] **Phase 6** — Analytics dashboard
+- [x] **Phase 6** — Analytics dashboard (tenant-scoped aggregates, Redis-cached summary)
 - [ ] **Phase 7** — React + Vite frontend
 ```

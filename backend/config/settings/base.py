@@ -183,6 +183,16 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # -----------------------------------------------------------------------------
+# Cache (Redis) — used for analytics rollups
+# -----------------------------------------------------------------------------
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_CACHE_URL", default="redis://redis:6379/2"),
+    }
+}
+
+# -----------------------------------------------------------------------------
 # CORS  (Vite dev server)
 # -----------------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
