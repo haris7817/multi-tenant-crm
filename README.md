@@ -28,6 +28,16 @@ docker compose up --build       # starts db, redis, web
 docker compose run --rm web pytest
 ```
 
+## Frontend (React + Vite)
+
+```bash
+docker compose up -d frontend     # http://localhost:5173
+```
+
+Sign in with workspace `acme`, `owner@acme.crm.local` / `password123`. See
+[frontend/README.md](frontend/README.md). (Runs in Docker because the host can't
+reach the npm registry.)
+
 ## Background jobs (Celery)
 
 ```bash
@@ -57,5 +67,5 @@ your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 - [x] **Phase 4** — Activity / audit logs (auto-recorded on every write, field diffs, timeline API)
 - [x] **Phase 5** — Celery background jobs & email (worker + beat, welcome/deal-won emails, stale-lead sweep)
 - [x] **Phase 6** — Analytics dashboard (tenant-scoped aggregates, Redis-cached summary)
-- [ ] **Phase 7** — React + Vite frontend
+- [x] **Phase 7** — React + Vite frontend (login, leads, pipeline kanban, analytics, tasks, activity timeline, members admin)
 ```
