@@ -51,6 +51,9 @@ export interface Lead {
   owner: number | null;
   owner_email: string | null;
   is_stale: boolean;
+  tags: number[];
+  tags_detail: Tag[];
+  custom: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +84,51 @@ export interface Deal {
 export interface PipelineColumn {
   stage: Stage;
   deals: Deal[];
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  color: string;
+}
+
+export interface Note {
+  id: number;
+  body: string;
+  author: number | null;
+  author_email: string | null;
+  target_model: string;
+  target_id: number;
+  created_at: string;
+}
+
+export interface Attachment {
+  id: number;
+  url: string | null;
+  filename: string;
+  uploaded_by: number | null;
+  target_model: string;
+  target_id: number;
+  created_at: string;
+}
+
+export type CustomFieldType = "text" | "number" | "date" | "select";
+
+export interface CustomFieldDefinition {
+  id: number;
+  entity: "lead" | "deal";
+  key: string;
+  label: string;
+  field_type: CustomFieldType;
+  options: string[];
+}
+
+export interface SavedView {
+  id: number;
+  entity: string;
+  name: string;
+  params: Record<string, string>;
+  created_at: string;
 }
 
 export type Priority = "low" | "medium" | "high";

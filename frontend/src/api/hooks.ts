@@ -6,24 +6,37 @@ import {
 
 import type {
   AnalyticsSummary,
+  Attachment,
   AuditLog,
+  CustomFieldDefinition,
   Deal,
   Lead,
   LeadsOverTimePoint,
   Member,
+  Note,
   Paginated,
   PipelineColumn,
   Role,
+  SavedView,
   Stage,
   StageBreakdown,
   StatusCount,
+  Tag,
   Task,
 } from "../lib/types";
 import { api } from "./client";
 
 // --- Leads -------------------------------------------------------------------
 
-export function useLeads(params: { search?: string; status?: string } = {}) {
+export function useLeads(
+  params: {
+    search?: string;
+    status?: string;
+    q?: string;
+    tag?: number;
+    ordering?: string;
+  } = {},
+) {
   return useQuery({
     queryKey: ["leads", params],
     queryFn: async () => {
@@ -263,5 +276,163 @@ export function useRemoveMember() {
       await api.delete(`/api/members/${id}/`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["members"] }),
+  });
+}
+
+// --- Phase 8: tags, notes, attachments, custom fields, saved views ----------
+
+export function useTags() {
+  return useQuery({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<Tag>>("/api/tags/");
+      return data.results;
+    },
+  });
+}
+
+export function useCreateTag() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { name: string; color?: string }) => {
+      const { data } = await api.post<Tag>("/api/tags/", payload);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
+  });
+}
+
+export function useNotes(target: { model: string; id: number }) {
+  return useQuery({
+    queryKey: ["notes", target],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<Note>>("/api/notes/", {
+        params: { target_model: target.model, target_id: target.id },
+      });
+      return data.results;
+    },
+  });
+}
+
+export function useCreateNote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      body: string;
+      target_model: string;
+      target_id: number;
+    }) => {
+      const { data } = await api.post<Note>("/api/notes/", payload);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notes"] }),
+  });
+}
+
+export function useAttachments(target: { model: string; id: number }) {
+  return useQuery({
+    queryKey: ["attachments", target],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<Attachment>>("/api/attachments/", {
+        params: { target_model: target.model, target_id: target.id },
+      });
+      return data.results;
+    },
+  });
+}
+
+export function useUploadAttachment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      file,
+      target_model,
+      target_id,
+    }: {
+      file: File;
+      target_model: string;
+      target_id: number;
+    }) => {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("target_model", target_model);
+      form.append("target_id", String(target_id));
+      const { data } = await api.post<Attachment>("/api/attachments/", form);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["attachments"] }),
+  });
+}
+
+export function useCustomFields(entity: "lead" | "deal") {
+  return useQuery({
+    queryKey: ["custom-fields", entity],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<CustomFieldDefinition>>(
+        "/api/custom-fields/",
+        { params: { entity } },
+      );
+      return data.results;
+    },
+  });
+}
+
+export function useSavedViews(entity: string) {
+  return useQuery({
+    queryKey: ["saved-views", entity],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<SavedView>>("/api/saved-views/", {
+        params: { entity },
+      });
+      return data.results;
+    },
+  });
+}
+
+export function useCreateSavedView() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      entity: string;
+      name: string;
+      params: Record<string, string>;
+    }) => {
+      const { data } = await api.post<SavedView>("/api/saved-views/", payload);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-views"] }),
+  });
+}
+
+export function useBulkLeads() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      ids: number[];
+      action: "set_status" | "set_owner" | "add_tag" | "delete";
+      status?: string;
+      owner?: number | null;
+      tag?: number;
+    }) => {
+      const { data } = await api.post("/api/leads/bulk/", payload);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+  });
+}
+
+export function useImportLeads() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const { data } = await api.post<{ created: number; errors: unknown[] }>(
+        "/api/leads/import_csv/",
+        form,
+      );
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
   });
 }

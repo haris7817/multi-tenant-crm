@@ -11,7 +11,8 @@ export default defineConfig({
     host: true,
     port: 5173,
     proxy: {
-      "/api": {
+      // Both /api and /media route to the backend with the tenant Host header.
+      "^/(api|media)/": {
         // "web" resolves on the Docker compose network; use localhost:8000 if
         // you ever run Vite outside Docker.
         target: "http://web:8000",

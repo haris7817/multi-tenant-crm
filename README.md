@@ -9,8 +9,10 @@ concepts: **multi-tenancy, RBAC, audit logs, and background jobs**.
 - **Tenant isolation:** shared schema + `tenant_id`, routed by **subdomain**
   (e.g. `acme.crm.local`)
 
-See [the build plan](../../.claude/plans/lets-plan-i-have-zany-boole.md) for the
-full phase-by-phase roadmap.
+See **[ROADMAP.md](ROADMAP.md)** for the full master plan — completed phases (0–7)
+and the planned roadmap (8–16: CRM depth, API platform, webhooks, OAuth/SSO,
+external connectors, AI assistant/chatbot, observability, and finally production
+deployment).
 
 ## Quick start
 
@@ -68,4 +70,5 @@ your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 - [x] **Phase 5** — Celery background jobs & email (worker + beat, welcome/deal-won emails, stale-lead sweep)
 - [x] **Phase 6** — Analytics dashboard (tenant-scoped aggregates, Redis-cached summary)
 - [x] **Phase 7** — React + Vite frontend (login, leads, pipeline kanban, analytics, tasks, activity timeline, members admin)
+- [x] **Phase 8** — CRM feature depth (notes, attachments, full-text search, CSV import/export, bulk actions, saved views, custom fields, tags)
 ```

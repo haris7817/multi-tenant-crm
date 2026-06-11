@@ -34,7 +34,11 @@
     { "key": "won_stage_id", "value": "" },
     { "key": "deal_id", "value": "" },
     { "key": "task_id", "value": "" },
-    { "key": "member_id", "value": "" }
+    { "key": "member_id", "value": "" },
+    { "key": "tag_id", "value": "" },
+    { "key": "note_id", "value": "" },
+    { "key": "customfield_id", "value": "" },
+    { "key": "savedview_id", "value": "" }
   ],
   "item": [
     {
@@ -458,6 +462,213 @@
               ]
             },
             "description": "Timeline for a single record (created/updated/deleted with field diffs)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tags (Phase 8)",
+      "item": [
+        {
+          "name": "List tags",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json().results || [];",
+                  "if (r.length) pm.collectionVariables.set('tag_id', r[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/tags/", "host": ["{{baseUrl}}"], "path": ["api", "tags", ""] }
+          }
+        },
+        {
+          "name": "Create tag (Sales Rep+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.collectionVariables.set('tag_id', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/tags/", "host": ["{{baseUrl}}"], "path": ["api", "tags", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"VIP\",\n  \"color\": \"amber\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notes & Attachments (Phase 8)",
+      "item": [
+        {
+          "name": "List notes for a lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notes/?target_model=lead&target_id={{lead_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notes", ""],
+              "query": [
+                { "key": "target_model", "value": "lead" },
+                { "key": "target_id", "value": "{{lead_id}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add note to a lead (Sales Rep+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/notes/", "host": ["{{baseUrl}}"], "path": ["api", "notes", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Called, will follow up\",\n  \"target_model\": \"lead\",\n  \"target_id\": {{lead_id}}\n}" }
+          }
+        },
+        {
+          "name": "List attachments for a lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/attachments/?target_model=lead&target_id={{lead_id}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attachments", ""],
+              "query": [
+                { "key": "target_model", "value": "lead" },
+                { "key": "target_id", "value": "{{lead_id}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Upload attachment (Sales Rep+)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/attachments/", "host": ["{{baseUrl}}"], "path": ["api", "attachments", ""] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "target_model", "value": "lead", "type": "text" },
+                { "key": "target_id", "value": "{{lead_id}}", "type": "text" }
+              ]
+            },
+            "description": "Pick a file for the 'file' field. Returns a relative `url` you can GET (served via the dev /media proxy)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leads — search/bulk/import (Phase 8)",
+      "item": [
+        {
+          "name": "Full-text search + tag filter",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/?q=&tag=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leads", ""],
+              "query": [
+                { "key": "q", "value": "", "description": "full-text across name/company/email/notes" },
+                { "key": "tag", "value": "", "description": "tag id" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export leads CSV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/leads/export/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "export", ""] }
+          }
+        },
+        {
+          "name": "Import leads CSV (Sales Rep+)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/leads/import_csv/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "import_csv", ""] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [{ "key": "file", "type": "file", "src": [] }]
+            },
+            "description": "CSV columns: name,email,company,status."
+          }
+        },
+        {
+          "name": "Bulk action (Sales Rep+; delete=Manager+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/leads/bulk/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "bulk", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"ids\": [{{lead_id}}],\n  \"action\": \"set_status\",\n  \"status\": \"qualified\"\n}" },
+            "description": "actions: set_status, set_owner, add_tag, delete."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Custom Fields & Saved Views (Phase 8)",
+      "item": [
+        {
+          "name": "List custom fields",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/custom-fields/?entity=lead",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "custom-fields", ""],
+              "query": [{ "key": "entity", "value": "lead" }]
+            }
+          }
+        },
+        {
+          "name": "Define custom field (Admin+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/custom-fields/", "host": ["{{baseUrl}}"], "path": ["api", "custom-fields", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"entity\": \"lead\",\n  \"key\": \"industry\",\n  \"label\": \"Industry\",\n  \"field_type\": \"text\"\n}" }
+          }
+        },
+        {
+          "name": "List saved views (mine)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/saved-views/?entity=lead",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "saved-views", ""],
+              "query": [{ "key": "entity", "value": "lead" }]
+            }
+          }
+        },
+        {
+          "name": "Create saved view",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/saved-views/", "host": ["{{baseUrl}}"], "path": ["api", "saved-views", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"entity\": \"lead\",\n  \"name\": \"Hot leads\",\n  \"params\": { \"status\": \"qualified\" }\n}" }
           }
         }
       ]

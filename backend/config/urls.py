@@ -1,4 +1,6 @@
 """Root URL configuration."""
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
@@ -29,3 +31,7 @@ urlpatterns = [
     path("api/", include("apps.activity.urls")),
     path("api/", include("apps.analytics.urls")),
 ]
+
+if settings.DEBUG:
+    # Serve user-uploaded attachments in dev (use S3/CDN in production).
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

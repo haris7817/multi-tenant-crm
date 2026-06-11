@@ -35,6 +35,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",  # full-text search (Phase 8.3)
 ]
 
 THIRD_PARTY_APPS = [
@@ -127,6 +128,10 @@ USE_TZ = True
 # -----------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Media (user uploads — Phase 8 attachments). Swap to S3 in production.
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
