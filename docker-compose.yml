@@ -40,28 +40,47 @@ services:
       redis:
         condition: service_healthy
 
-  # Celery services are added/enabled in Phase 5.
-  # celery-worker:
-  #   build: ./backend
-  #   command: celery -A config worker -l info
-  #   volumes:
-  #     - ./backend:/app
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - db
-  #     - redis
-  #
-  # celery-beat:
-  #   build: ./backend
-  #   command: celery -A config beat -l info
-  #   volumes:
-  #     - ./backend:/app
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - db
-  #     - redis
+  celery-worker:
+    build: ./backend
+    command: celery -A config worker -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build: ./backend
+    command: celery -A config beat -l info
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # React + Vite dev server. node_modules lives in an anonymous volume so the
+  # Linux-built binaries (esbuild/vite) don't clash with the Windows host and
+  # bind-mount perf stays good. Installs deps on first start.
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
 
 volumes:
   pgdata:
+  frontend_node_modules:

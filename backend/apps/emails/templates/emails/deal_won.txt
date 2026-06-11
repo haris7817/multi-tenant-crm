@@ -1,0 +1,7 @@
+Congratulations {{ deal.owner.full_name|default:deal.owner.email }}!
+
+The deal "{{ deal.title }}" worth {{ deal.value }} has been marked as WON.
+
+Great work closing this one.
+
+— {{ deal.tenant.name }} CRM

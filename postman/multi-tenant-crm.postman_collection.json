@@ -51,7 +51,7 @@
               "mode": "raw",
               "raw": "{\n  \"tenant_name\": \"New Co\",\n  \"slug\": \"newco\",\n  \"email\": \"founder@newco.crm.local\",\n  \"password\": \"password123\"\n}"
             },
-            "description": "Public onboarding: creates a new tenant + Owner user + `<slug>.crm.local` subdomain. To use the new workspace, set `tenant` = the slug and log in."
+            "description": "Public onboarding: creates a new tenant + Owner user + `<slug>.crm.local` subdomain. To use the new workspace, set `tenant` = the slug and log in.\n\n**Phase 5:** queues a welcome email to the new Owner (async). Watch it run with `docker compose logs -f celery-worker`."
           }
         },
         {
@@ -153,7 +153,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": { "raw": "{{baseUrl}}/api/members/", "host": ["{{baseUrl}}"], "path": ["api", "members", ""] },
             "body": { "mode": "raw", "raw": "{\n  \"email\": \"newhire@{{tenant}}.crm.local\",\n  \"role\": \"sales_rep\",\n  \"password\": \"password123\"\n}" },
-            "description": "Add a member to the current tenant. Requires Admin role or higher."
+            "description": "Add a member to the current tenant. Requires Admin role or higher.\n\n**Phase 5:** queues a welcome email to the invited member (async — see `celery-worker` logs)."
           }
         },
         {
@@ -354,7 +354,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "url": { "raw": "{{baseUrl}}/api/deals/{{deal_id}}/move/", "host": ["{{baseUrl}}"], "path": ["api", "deals", "{{deal_id}}", "move", ""] },
             "body": { "mode": "raw", "raw": "{\n  \"stage\": {{won_stage_id}}\n}" },
-            "description": "Moves the deal; entering a Won/Lost stage stamps closed_at. Run 'List stages' first to set {{won_stage_id}}."
+            "description": "Moves the deal; entering a Won/Lost stage stamps closed_at. Run 'List stages' first to set {{won_stage_id}}.\n\n**Phase 5:** moving to the **Won** stage queues a 'deal won' email to the deal owner (async — see `celery-worker` logs)."
           }
         },
         {
@@ -458,6 +458,75 @@
               ]
             },
             "description": "Timeline for a single record (created/updated/deleted with field diffs)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analytics (Phase 6)",
+      "description": "Tenant-scoped dashboard aggregates. All read-only, any member. The summary is cached in Redis (~60s).",
+      "item": [
+        {
+          "name": "Summary (KPIs)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/summary/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "summary", ""] },
+            "description": "Leads total/stale, open deals + pipeline value, won deals + value, win rate. Cached ~60s per tenant."
+          }
+        },
+        {
+          "name": "Deals by stage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/deals-by-stage/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "deals-by-stage", ""] },
+            "description": "Count + total value per pipeline stage (includes empty stages) — kanban totals."
+          }
+        },
+        {
+          "name": "Leads by status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/leads-by-status/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "leads-by-status", ""] }
+          }
+        },
+        {
+          "name": "Leads over time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/analytics/leads-over-time/?days=30",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "analytics", "leads-over-time", ""],
+              "query": [{ "key": "days", "value": "30" }]
+            }
+          }
+        },
+        {
+          "name": "Revenue forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/analytics/revenue-forecast/", "host": ["{{baseUrl}}"], "path": ["api", "analytics", "revenue-forecast", ""] },
+            "description": "Open pipeline value grouped by expected-close month."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Background Jobs & Email (Phase 5)",
+      "description": "Phase 5 adds **no new REST endpoints** — it runs work asynchronously via Celery.\n\n## Async emails (console backend in dev → printed in worker logs)\n- **Welcome email** — fired by `Auth → Register` and `Members → Invite member`.\n- **Deal-won email** — fired by `Deals → Move deal to stage` when the target stage is **Won**.\n\nStart the workers and watch them run:\n```bash\ndocker compose up -d celery-worker celery-beat\ndocker compose logs -f celery-worker\n```\n\n## Scheduled job\n`flag_stale_leads` runs daily via Celery Beat and sets `is_stale=true` on cold open leads. The result is visible on the Lead API (see the request below).",
+      "item": [
+        {
+          "name": "List leads (shows is_stale)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/leads/", "host": ["{{baseUrl}}"], "path": ["api", "leads", ""] },
+            "description": "Each lead now includes the read-only `is_stale` flag set by the scheduled `flag_stale_leads` task."
           }
         }
       ]

@@ -35,6 +35,8 @@ class Lead(TenantBaseModel):
         on_delete=models.SET_NULL,
         related_name="owned_leads",
     )
+    # Set by the scheduled flag_stale_leads task when a lead goes cold.
+    is_stale = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]

@@ -7,6 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 # backend/config/settings/base.py -> backend/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -170,6 +171,26 @@ CELERY_TASK_ALWAYS_EAGER = env.bool("CELERY_TASK_ALWAYS_EAGER", default=False)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Scheduled jobs run by Celery Beat.
+CELERY_BEAT_SCHEDULE = {
+    "flag-stale-leads-daily": {
+        "task": "apps.crm.tasks.flag_stale_leads",
+        "schedule": crontab(hour=2, minute=0),  # every day at 02:00 UTC
+        "kwargs": {"days": 14},
+    },
+}
+
+# -----------------------------------------------------------------------------
+# Cache (Redis) — used for analytics rollups
+# -----------------------------------------------------------------------------
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_CACHE_URL", default="redis://redis:6379/2"),
+    }
+}
 
 # -----------------------------------------------------------------------------
 # CORS  (Vite dev server)
