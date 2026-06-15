@@ -1,0 +1,10 @@
+Hi {{ user.full_name|default:user.email }},
+
+Here's your {{ tenant.name }} daily summary:
+
+{% if stale %}- {{ stale }} stale lead(s) need attention{% endif %}
+{% if due %}- {{ due }} task(s) due or overdue{% endif %}
+
+Sign in to follow up: http://{{ tenant.slug }}.crm.local
+
+— {{ tenant.name }} CRM

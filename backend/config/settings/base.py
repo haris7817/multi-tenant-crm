@@ -41,6 +41,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "channels",
     "corsheaders",
     "drf_spectacular",
     "django_filters",
@@ -53,9 +54,11 @@ LOCAL_APPS = [
     "apps.activity",
     "apps.emails",
     "apps.analytics",
+    "apps.notifications",
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+# "daphne" must come first so it overrides runserver with the ASGI dev server.
+INSTALLED_APPS = ["daphne"] + DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # -----------------------------------------------------------------------------
 # Middleware  (TenantMiddleware is added in Phase 1)
@@ -91,6 +94,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+
+# Channels / WebSockets (9.2)
+ASGI_APPLICATION = "config.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env("REDIS_WS_URL", default="redis://redis:6379/3")],
+        },
+    }
+}
 ASGI_APPLICATION = "config.asgi.application"
 
 # -----------------------------------------------------------------------------
@@ -184,6 +198,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.crm.tasks.flag_stale_leads",
         "schedule": crontab(hour=2, minute=0),  # every day at 02:00 UTC
         "kwargs": {"days": 14},
+    },
+    "remind-due-tasks-daily": {
+        "task": "apps.notifications.tasks.remind_due_tasks",
+        "schedule": crontab(hour=7, minute=0),  # 07:00 — morning reminders
+    },
+    "send-daily-digests": {
+        "task": "apps.notifications.tasks.send_daily_digests",
+        "schedule": crontab(hour=7, minute=30),
     },
 }
 

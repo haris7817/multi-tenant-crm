@@ -6,6 +6,7 @@ import {
 
 import type {
   AnalyticsSummary,
+  AppNotification,
   Attachment,
   AuditLog,
   CustomFieldDefinition,
@@ -434,5 +435,53 @@ export function useImportLeads() {
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+  });
+}
+
+// --- Phase 9: notifications -------------------------------------------------
+
+export function useNotifications() {
+  return useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<AppNotification>>(
+        "/api/notifications/",
+      );
+      return data.results;
+    },
+    refetchInterval: 15_000, // poll until WebSockets (iteration 2)
+  });
+}
+
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: ["notifications", "unread"],
+    queryFn: async () => {
+      const { data } = await api.get<{ unread: number }>(
+        "/api/notifications/unread_count/",
+      );
+      return data.unread;
+    },
+    refetchInterval: 15_000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.post(`/api/notifications/${id}/mark_read/`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
+export function useMarkAllRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      await api.post("/api/notifications/mark_all_read/");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }

@@ -26,6 +26,13 @@ export default defineConfig({
           });
         },
       },
+      // WebSocket for real-time notifications. Tenant comes from the JWT (?token=),
+      // not the Host, so no header rewrite is needed here.
+      "/ws": {
+        target: "http://web:8000",
+        ws: true,
+        changeOrigin: false,
+      },
     },
   },
 });

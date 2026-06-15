@@ -30,6 +30,7 @@ urlpatterns = [
     path("api/", include("apps.crm.urls")),
     path("api/", include("apps.activity.urls")),
     path("api/", include("apps.analytics.urls")),
+    path("api/", include("apps.notifications.urls")),
 ]
 
 if settings.DEBUG:

@@ -87,12 +87,14 @@ Make the core CRM feel real before exposing it.
 - (Frontend: tags column, full-text search, bulk bar, import/export, lead
   detail drawer with notes/attachments/tags/custom fields)
 
-## 🔭 Phase 9 — Notifications & Collaboration
-- 9.1 **In-app notifications** model + feed + unread counts
-- 9.2 **Real-time updates** via Django Channels + WebSockets (live pipeline/notifs)
-- 9.3 **Email digests** (daily "your stale leads / tasks due") via Celery beat
-- 9.4 **Task reminders** (due-date notifications)
-- 9.5 **Assignment notifications** (notify on lead/task assignment)
+## ✅ Phase 9 — Notifications & Collaboration
+- 9.1 ✅ **In-app notifications** model + feed + unread counts + mark-read
+- 9.2 ✅ **Real-time updates** via Django Channels + WebSockets (JWT auth, Redis
+  channel layer, live push on notify; frontend WS client w/ auto-reconnect)
+- 9.3 ✅ **Email digests** (daily stale leads / tasks due) via Celery beat
+- 9.4 ✅ **Task reminders** (due-date notifications, deduped per day)
+- 9.5 ✅ **Assignment notifications** (signals on lead owner / task assignee change)
+- (Frontend: notification bell with unread badge + dropdown feed)
 
 ## 🔭 Phase 10 — Public API Platform
 The authenticated surface external apps build against.

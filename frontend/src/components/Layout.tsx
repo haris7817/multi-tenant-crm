@@ -1,6 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
 
+import { useNotificationSocket } from "../api/useNotificationSocket";
 import { useAuth } from "../auth/AuthContext";
+import NotificationBell from "./NotificationBell";
 
 const NAV = [
   { to: "/", label: "Dashboard", end: true },
@@ -13,6 +15,7 @@ const NAV = [
 
 export default function Layout() {
   const { auth, logout } = useAuth();
+  useNotificationSocket(); // live notification push (falls back to polling)
 
   return (
     <div className="flex min-h-screen">
@@ -49,6 +52,7 @@ export default function Layout() {
             Workspace: <span className="font-medium text-slate-700">{auth?.slug}</span>
           </div>
           <div className="flex items-center gap-4 text-sm">
+            <NotificationBell />
             <span className="text-slate-600">{auth?.email}</span>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium uppercase text-slate-600">
               {auth?.role}

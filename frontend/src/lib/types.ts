@@ -131,6 +131,23 @@ export interface SavedView {
   created_at: string;
 }
 
+export type NotificationType =
+  | "assigned"
+  | "task_due"
+  | "deal_won"
+  | "mention"
+  | "system";
+
+export interface AppNotification {
+  id: number;
+  type: NotificationType;
+  message: string;
+  target_model: string | null;
+  target_id: number | null;
+  is_read: boolean;
+  created_at: string;
+}
+
 export type Priority = "low" | "medium" | "high";
 
 export interface Task {
