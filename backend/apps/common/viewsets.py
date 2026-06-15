@@ -9,18 +9,21 @@ Shared DRF base classes for tenant-owned resources.
 Subclasses just set ``queryset`` and ``serializer_class``.
 """
 from rest_framework import viewsets
-from rest_framework.permissions import SAFE_METHODS
 
 from apps.accounts.models import Role
-from apps.accounts.permissions import HasTenantRole, IsTenantMember
 from apps.activity.models import AuditLog
 from apps.activity.services import diff, record
+from apps.apikeys.throttles import ApiKeyRateThrottle
+from apps.common.permissions import TenantAccess
 
 
 class TenantModelViewSet(viewsets.ModelViewSet):
     # Role required to mutate. Override per-resource if needed.
     write_role = Role.SALES_REP
     delete_role = Role.MANAGER
+
+    # Per-key rate limiting (no-op for user-JWT requests).
+    throttle_classes = [ApiKeyRateThrottle]
 
     # Set False on a viewset to skip audit logging for its writes.
     audit = True
@@ -38,14 +41,10 @@ class TenantModelViewSet(viewsets.ModelViewSet):
         return qs.filter(tenant=tenant)
 
     def get_permissions(self):
-        # Gate by method so custom GET actions (e.g. /pipeline/) are reads and
-        # custom POST actions (e.g. /move/) are writes — no per-action wiring.
-        method = self.request.method
-        if method in SAFE_METHODS:
-            return [IsTenantMember()]
-        if method == "DELETE":
-            return [HasTenantRole(self.delete_role)()]
-        return [HasTenantRole(self.write_role)()]
+        # One permission accepts EITHER a user JWT (role-gated) OR an API key
+        # (scope-gated). Gating is by HTTP method, so custom GET actions are
+        # reads and custom POST actions are writes — no per-action wiring.
+        return [TenantAccess(write_role=self.write_role, delete_role=self.delete_role)]
 
     # --- writes (each also records an audit entry) ---------------------------
 
@@ -54,8 +53,14 @@ class TenantModelViewSet(viewsets.ModelViewSet):
         # only defaulted if the model has that field and the client omitted it.
         extra = {"tenant": self.request.tenant}
         model = serializer.Meta.model
-        if _has_field(model, "owner") and not serializer.validated_data.get("owner"):
-            extra["owner"] = self.request.user
+        user = self.request.user
+        # Default owner only for a real user (API keys may have no/anon user).
+        if (
+            _has_field(model, "owner")
+            and not serializer.validated_data.get("owner")
+            and getattr(user, "is_authenticated", False)
+        ):
+            extra["owner"] = user
         serializer.save(**extra)
         self._audit(AuditLog.Action.CREATED, serializer.instance)
 

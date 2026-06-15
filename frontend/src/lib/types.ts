@@ -131,6 +131,22 @@ export interface SavedView {
   created_at: string;
 }
 
+export interface ApiKey {
+  id: number;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  is_active: boolean;
+  created_by_email: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  key: string; // raw secret, shown once
+}
+
 export type NotificationType =
   | "assigned"
   | "task_due"

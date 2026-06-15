@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
+    SpectacularRedocView,
     SpectacularSwaggerView,
 )
 
@@ -25,12 +26,21 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
+    path(
+        "api/redoc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="redoc",
+    ),
     path("api/", include("apps.tenants.urls")),
     path("api/", include("apps.accounts.urls")),
     path("api/", include("apps.crm.urls")),
     path("api/", include("apps.activity.urls")),
     path("api/", include("apps.analytics.urls")),
     path("api/", include("apps.notifications.urls")),
+    path("api/", include("apps.apikeys.urls")),
+    # Versioned public API surface (Phase 10). Same viewsets; accepts a user JWT
+    # or an API key. External apps should target /api/v1/.
+    path("api/v1/", include("apps.crm.urls")),
 ]
 
 if settings.DEBUG:

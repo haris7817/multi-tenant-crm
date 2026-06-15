@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth/AuthContext";
 import Layout from "./components/Layout";
 import ActivityPage from "./pages/ActivityPage";
+import ApiKeysPage from "./pages/ApiKeysPage";
 import DashboardPage from "./pages/DashboardPage";
 import LeadsPage from "./pages/LeadsPage";
 import LoginPage from "./pages/LoginPage";
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="members" element={<MembersPage />} />
+        <Route path="api-keys" element={<ApiKeysPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

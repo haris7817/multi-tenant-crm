@@ -11,11 +11,13 @@ const NAV = [
   { to: "/tasks", label: "Tasks", end: false },
   { to: "/activity", label: "Activity", end: false },
   { to: "/members", label: "Members", end: false },
+  { to: "/api-keys", label: "API Keys", end: false, adminOnly: true },
 ];
 
 export default function Layout() {
-  const { auth, logout } = useAuth();
+  const { auth, logout, hasRole } = useAuth();
   useNotificationSocket(); // live notification push (falls back to polling)
+  const nav = NAV.filter((item) => !item.adminOnly || hasRole("admin"));
 
   return (
     <div className="flex min-h-screen">
@@ -23,7 +25,7 @@ export default function Layout() {
       <aside className="flex w-56 flex-col border-r border-slate-200 bg-white">
         <div className="px-5 py-4 text-lg font-bold text-brand-700">CRM</div>
         <nav className="flex-1 space-y-1 px-3">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

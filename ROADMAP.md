@@ -96,14 +96,16 @@ Make the core CRM feel real before exposing it.
 - 9.5 ✅ **Assignment notifications** (signals on lead owner / task assignee change)
 - (Frontend: notification bell with unread badge + dropdown feed)
 
-## 🔭 Phase 10 — Public API Platform
+## ✅ Phase 10 — Public API Platform
 The authenticated surface external apps build against.
-- 10.1 **API versioning** (`/api/v1/`) + deprecation policy
-- 10.2 **Per-tenant API keys** (model, hashed storage, create/revoke UI)
-- 10.3 **Scopes** (read-only vs read-write; resource scopes) + key auth class
-- 10.4 **Rate limiting / throttling** per key + per tenant (DRF throttles + Redis)
-- 10.5 **Consistent error envelope**, pagination/cursor standards, idempotency keys
-- 10.6 **Docs & SDKs**: hosted OpenAPI docs, generated TS/Python clients
+- 10.1 ✅ **API versioning** — `/api/v1/` surface (same viewsets; JWT or key)
+- 10.2 ✅ **Per-tenant API keys** — hashed (SHA-256), prefix lookup, create/revoke API + UI
+- 10.3 ✅ **Scopes** (read / write) + `ApiKeyAuthentication`; tenant bound FROM the key
+- 10.4 ✅ **Rate limiting** per key (DRF SimpleRateThrottle + Redis)
+- 10.5 ✅ **Consistent error envelope** + **idempotency keys** (`Idempotency-Key`, Redis replay)
+- 10.6 ✅ **OpenAPI docs** — API-key security scheme + Swagger + Redoc
+  *(SDK generation: `openapi-generator` against `/api/schema/` — documented, not run)*
+- (Frontend: admin-only API Keys page — create with scopes, reveal-once, revoke)
 
 ## 🔭 Phase 11 — Webhooks (Outbound + Inbound)
 The most useful integration primitive.

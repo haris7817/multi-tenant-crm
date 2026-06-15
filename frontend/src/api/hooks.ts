@@ -6,6 +6,8 @@ import {
 
 import type {
   AnalyticsSummary,
+  ApiKey,
+  ApiKeyCreated,
   AppNotification,
   Attachment,
   AuditLog,
@@ -483,5 +485,38 @@ export function useMarkAllRead() {
       await api.post("/api/notifications/mark_all_read/");
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
+  });
+}
+
+// --- Phase 10: API keys -----------------------------------------------------
+
+export function useApiKeys() {
+  return useQuery({
+    queryKey: ["api-keys"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<ApiKey>>("/api/api-keys/");
+      return data.results;
+    },
+  });
+}
+
+export function useCreateApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { name: string; scopes: string[] }) => {
+      const { data } = await api.post<ApiKeyCreated>("/api/api-keys/", payload);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+export function useRevokeApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/api/api-keys/${id}/`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
   });
 }
