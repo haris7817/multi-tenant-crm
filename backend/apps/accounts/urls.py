@@ -10,6 +10,7 @@ router.register("members", views.MemberViewSet, basename="member")
 urlpatterns = [
     path("auth/register/", views.RegisterView.as_view(), name="register"),
     path("auth/login/", views.LoginView.as_view(), name="login"),
+    path("auth/google/", views.GoogleLoginView.as_view(), name="google-login"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/me/", views.me, name="me"),
     path("", include(router.urls)),

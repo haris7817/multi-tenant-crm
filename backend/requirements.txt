@@ -7,6 +7,7 @@ redis==5.2.1
 channels==4.2.0
 channels-redis==4.2.1
 daphne==4.1.2
+google-auth==2.37.0
 django-cors-headers==4.6.0
 drf-spectacular==0.28.0
 django-environ==0.11.2

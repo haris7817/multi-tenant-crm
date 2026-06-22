@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.apikeys",
     "apps.webhooks",
+    "apps.connections",
 ]
 
 # "daphne" must come first so it overrides runserver with the ASGI dev server.
@@ -238,6 +239,24 @@ CACHES = {
 CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = True
+
+# -----------------------------------------------------------------------------
+# Connections / OAuth (Phase 12)
+# -----------------------------------------------------------------------------
+# Field encryption key for stored secrets. Empty -> derived from SECRET_KEY (dev).
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
+
+# Per-provider OAuth client credentials (kept out of code; empty = unconfigured).
+OAUTH_PROVIDERS = {
+    "google": {
+        "client_id": env("GOOGLE_CLIENT_ID", default=""),
+        "client_secret": env("GOOGLE_CLIENT_SECRET", default=""),
+    },
+    "slack": {
+        "client_id": env("SLACK_CLIENT_ID", default=""),
+        "client_secret": env("SLACK_CLIENT_SECRET", default=""),
+    },
+}
 
 # Email — console backend by default (Phase 5 may swap to SMTP).
 EMAIL_BACKEND = env(

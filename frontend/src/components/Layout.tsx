@@ -13,6 +13,7 @@ const NAV = [
   { to: "/members", label: "Members", end: false },
   { to: "/api-keys", label: "API Keys", end: false, adminOnly: true },
   { to: "/webhooks", label: "Webhooks", end: false, adminOnly: true },
+  { to: "/integrations", label: "Integrations", end: false, adminOnly: true },
 ];
 
 export default function Layout() {

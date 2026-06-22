@@ -45,7 +45,8 @@
     { "key": "webhook_id", "value": "" },
     { "key": "delivery_id", "value": "" },
     { "key": "inbound_token", "value": "" },
-    { "key": "inbound_secret", "value": "" }
+    { "key": "inbound_secret", "value": "" },
+    { "key": "connection_id", "value": "" }
   ],
   "item": [
     {
@@ -938,6 +939,80 @@
             "url": { "raw": "{{baseUrl}}/api/v1/inbound/{{inbound_token}}/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inbound", "{{inbound_token}}", ""] },
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"Inbound Jane\",\n  \"email\": \"jane@example.com\",\n  \"company\": \"BuyCo\"\n}" },
             "description": "The pre-request script computes X-Signature. Creates a lead on success (201). Tamper the body without re-signing to see a 401."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integrations & SSO (Phase 12)",
+      "description": "Connect external services (OAuth) with encrypted token storage, plus Sign in with Google. Tokens are never exposed by the API. Connect/Google flows need real provider credentials to complete; the endpoints/validation are exercisable as-is.",
+      "item": [
+        {
+          "name": "List providers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/connections/providers/", "host": ["{{baseUrl}}"], "path": ["api", "connections", "providers", ""] },
+            "description": "Catalog with configured + connected status per provider."
+          }
+        },
+        {
+          "name": "List connections",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json().results || [];",
+                  "if (r.length) pm.collectionVariables.set('connection_id', r[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/connections/", "host": ["{{baseUrl}}"], "path": ["api", "connections", ""] }
+          }
+        },
+        {
+          "name": "Authorize (start OAuth) (Admin+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/connections/authorize/", "host": ["{{baseUrl}}"], "path": ["api", "connections", "authorize", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"provider\": \"google\",\n  \"redirect_uri\": \"http://localhost:5173/oauth/callback\"\n}" },
+            "description": "Returns authorize_url to redirect the user to. 400 if the provider isn't configured (no client id/secret in env)."
+          }
+        },
+        {
+          "name": "Complete OAuth (callback) (Admin+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/connections/callback/", "host": ["{{baseUrl}}"], "path": ["api", "connections", "callback", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"state\": \"<from authorize redirect>\",\n  \"code\": \"<from provider redirect>\"\n}" },
+            "description": "Exchanges the code for tokens (stored encrypted). Needs real state+code from a provider round-trip."
+          }
+        },
+        {
+          "name": "Disconnect (Admin+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/connections/{{connection_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "connections", "{{connection_id}}", ""] }
+          }
+        },
+        {
+          "name": "Sign in with Google (SSO)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/google/", "host": ["{{baseUrl}}"], "path": ["api", "auth", "google", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"credential\": \"<google id_token>\"\n}" },
+            "description": "Verifies a Google ID token for the current workspace (subdomain) and returns our JWT if the email is a member. Needs a real Google id_token."
           }
         }
       ]

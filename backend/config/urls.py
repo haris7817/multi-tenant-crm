@@ -43,6 +43,7 @@ urlpatterns = [
     path("api/", include("apps.notifications.urls")),
     path("api/", include("apps.apikeys.urls")),
     path("api/", include("apps.webhooks.urls")),
+    path("api/", include("apps.connections.urls")),
     # Versioned public API surface (Phase 10). Same viewsets; accepts a user JWT
     # or an API key. External apps should target /api/v1/.
     path("api/v1/", include("apps.crm.urls")),

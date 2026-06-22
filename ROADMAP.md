@@ -119,11 +119,15 @@ The most useful integration primitive.
 - (Frontend: admin Webhooks page — outbound endpoints + signing secret + deliveries/replay,
   and inbound endpoints with receive URL + secret)
 
-## 🔭 Phase 12 — OAuth, SSO & Connection Framework
-- 12.1 **Social login / SSO** (Google, Microsoft) via django-allauth
-- 12.2 **Be an OAuth2 provider** (django-oauth-toolkit) for third-party apps
-- 12.3 **Encrypted per-tenant credential store** (Fernet/field encryption)
-- 12.4 **Connection framework**: OAuth connect flows, token refresh, status
+## ✅ Phase 12 — OAuth, SSO & Connection Framework
+- 12.1 ✅ **Social login / SSO** — `/api/auth/google/` verifies a Google ID token → maps to a
+  tenant member → issues our JWT; frontend "Sign in with Google" (gated on `VITE_GOOGLE_CLIENT_ID`)
+- 12.2 ⏸️ **Be an OAuth2 provider** — deferred: Phase 10 API keys already cover third-party
+  machine access; a full auth-code provider is a large future addition
+- 12.3 ✅ **Encrypted credential store** — Fernet `EncryptedTextField`; tokens ciphertext at rest
+- 12.4 ✅ **Connection framework** — `Connection`/`OAuthState`, provider registry (Google/Slack),
+  authorize → callback → token exchange → refresh → disconnect; tokens never exposed over API
+- (Frontend: Integrations page — connect/disconnect, status; OAuth callback handler)
 
 ## 🔭 Phase 13 — External Connectors (the "connect with other apps" payoff)
 Built on 10–12. Each is a sub-phase.
@@ -180,6 +184,39 @@ Lock it down and ship it.
   zero-downtime releases, migrations-on-deploy, rollback
 - 16.8 **Tenant lifecycle & compliance**: suspension, quotas, GDPR export/delete,
   data-retention policies, rate-limit/abuse monitoring
+
+---
+
+# Part III — Deferred items & known gaps (not yet implemented)
+
+Small things consciously skipped *inside* completed phases (0–12), tracked so
+they aren't forgotten. (The big future themes are Phases 13–16 above.)
+
+**Integrations / API**
+- 🔭 **12.2 OAuth2 provider** (be an auth-code provider via django-oauth-toolkit) —
+  deferred; API keys (Phase 10) cover third-party machine access.
+- 🔭 **10.6 SDK generation** — schema + auth scheme exist; running
+  `openapi-generator` to publish TS/Python clients is documented, not done.
+- 🔭 **10.5 cursor pagination** — still page-number pagination.
+- 🔭 **Microsoft / Azure AD SSO** — only Google SSO is built (12.1).
+- 🔭 **Live provider credentials** — Google/Slack OAuth + Google SSO need real
+  client id/secret in env to complete real round-trips (mechanism is tested).
+
+**Webhooks / real-time**
+- 🔭 **Inbound webhook idempotency / replay-dedup** (11.6) — not implemented.
+- 🔭 **WebSocket origin validation** (`AllowedHostsOriginValidator`) for prod (9.2).
+- 🔭 **Webhook URL validation** rejects internal single-label hosts (dev workaround
+  used the ORM for the self-delivery demo).
+
+**Security / storage**
+- 🔭 **Attachment access control** (8.2) — `/media/` URLs aren't permission-checked;
+  prod needs signed or auth-gated downloads (the listing API *is* tenant-scoped).
+- 🔭 **Notifications**: no per-user email/WS preferences; digests email all members.
+
+**Quality**
+- 🔭 **Frontend tests** (Vitest/Playwright) — none yet (planned in Phase 15).
+- 🔭 **CI** not wired (Phase 15); **Celery beat** still file-scheduled, not
+  `django-celery-beat` (Phase 16).
 
 ---
 

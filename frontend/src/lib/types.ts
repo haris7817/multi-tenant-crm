@@ -187,6 +187,23 @@ export interface InboundEndpoint {
   created_at: string;
 }
 
+export interface ConnectionProvider {
+  key: string;
+  label: string;
+  configured: boolean;
+  connected: boolean;
+}
+
+export interface Connection {
+  id: number;
+  provider: string;
+  status: "connected" | "disconnected" | "error";
+  account_email: string;
+  scopes: string;
+  expires_at: string | null;
+  created_at: string;
+}
+
 export type NotificationType =
   | "assigned"
   | "task_due"

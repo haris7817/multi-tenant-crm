@@ -5,9 +5,11 @@ import Layout from "./components/Layout";
 import ActivityPage from "./pages/ActivityPage";
 import ApiKeysPage from "./pages/ApiKeysPage";
 import DashboardPage from "./pages/DashboardPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 import LeadsPage from "./pages/LeadsPage";
 import LoginPage from "./pages/LoginPage";
 import MembersPage from "./pages/MembersPage";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import PipelinePage from "./pages/PipelinePage";
 import TasksPage from "./pages/TasksPage";
 import WebhooksPage from "./pages/WebhooksPage";
@@ -37,6 +39,8 @@ export default function App() {
         <Route path="members" element={<MembersPage />} />
         <Route path="api-keys" element={<ApiKeysPage />} />
         <Route path="webhooks" element={<WebhooksPage />} />
+        <Route path="integrations" element={<IntegrationsPage />} />
+        <Route path="oauth/callback" element={<OAuthCallbackPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

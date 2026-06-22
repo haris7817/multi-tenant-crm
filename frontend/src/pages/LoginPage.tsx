@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const [slug, setSlug] = useState("acme");
@@ -76,6 +77,22 @@ export default function LoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        <div className="my-4 flex items-center gap-2 text-xs text-slate-400">
+          <span className="h-px flex-1 bg-slate-200" /> or{" "}
+          <span className="h-px flex-1 bg-slate-200" />
+        </div>
+        <GoogleSignInButton
+          onCredential={async (credential) => {
+            setError(null);
+            try {
+              await loginWithGoogle(slug.trim(), credential);
+              navigate("/", { replace: true });
+            } catch {
+              setError("Google sign-in failed — no account in this workspace?");
+            }
+          }}
+        />
       </div>
     </div>
   );

@@ -1,8 +1,23 @@
 """Tenant-aware JWT: embed tenant_id + role so each token is bound to a tenant."""
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Membership
+
+
+def issue_tenant_tokens(user, tenant, membership):
+    """Build the tenant-bound JWT payload (shared by password + SSO logins)."""
+    refresh = RefreshToken.for_user(user)
+    refresh["tenant_id"] = tenant.id
+    refresh["role"] = membership.role
+    return {
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "role": membership.role,
+        "tenant": tenant.slug,
+        "email": user.email,
+    }
 
 
 class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -27,14 +42,4 @@ class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
                 "You are not a member of this tenant."
             )
 
-        refresh = self.get_token(self.user)
-        refresh["tenant_id"] = tenant.id
-        refresh["role"] = membership.role
-
-        return {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "role": membership.role,
-            "tenant": tenant.slug,
-            "email": self.user.email,
-        }
+        return issue_tenant_tokens(self.user, tenant, membership)

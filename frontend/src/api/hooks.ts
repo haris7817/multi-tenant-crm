@@ -11,6 +11,8 @@ import type {
   AppNotification,
   Attachment,
   AuditLog,
+  Connection,
+  ConnectionProvider,
   CustomFieldDefinition,
   Deal,
   InboundEndpoint,
@@ -619,5 +621,71 @@ export function useDeleteInboundEndpoint() {
       await api.delete(`/api/inbound-endpoints/${id}/`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["inbound-endpoints"] }),
+  });
+}
+
+// --- Phase 12: connections / integrations -----------------------------------
+
+export function useConnectionProviders() {
+  return useQuery({
+    queryKey: ["connection-providers"],
+    queryFn: async () => {
+      const { data } = await api.get<ConnectionProvider[]>(
+        "/api/connections/providers/",
+      );
+      return data;
+    },
+  });
+}
+
+export function useConnections() {
+  return useQuery({
+    queryKey: ["connections"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<Connection>>("/api/connections/");
+      return data.results;
+    },
+  });
+}
+
+export function useAuthorizeConnection() {
+  return useMutation({
+    mutationFn: async (payload: { provider: string; redirect_uri: string }) => {
+      const { data } = await api.post<{ authorize_url: string }>(
+        "/api/connections/authorize/",
+        payload,
+      );
+      return data;
+    },
+  });
+}
+
+export function useCompleteOAuth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { state: string; code: string }) => {
+      const { data } = await api.post<Connection>(
+        "/api/connections/callback/",
+        payload,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["connections"] });
+      qc.invalidateQueries({ queryKey: ["connection-providers"] });
+    },
+  });
+}
+
+export function useDisconnect() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/api/connections/${id}/`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["connections"] });
+      qc.invalidateQueries({ queryKey: ["connection-providers"] });
+    },
   });
 }
