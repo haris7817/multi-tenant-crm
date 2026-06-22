@@ -107,14 +107,17 @@ The authenticated surface external apps build against.
   *(SDK generation: `openapi-generator` against `/api/schema/` — documented, not run)*
 - (Frontend: admin-only API Keys page — create with scopes, reveal-once, revoke)
 
-## 🔭 Phase 11 — Webhooks (Outbound + Inbound)
+## ✅ Phase 11 — Webhooks (outbound + inbound)
 The most useful integration primitive.
-- 11.1 **Event catalog** (`lead.created`, `deal.won`, `task.completed`, …)
-- 11.2 **Transactional outbox** (write event in same txn as the change)
-- 11.3 **Outbound delivery** via Celery: **HMAC-signed** payloads, **retries** w/ backoff
-- 11.4 **Delivery logs + replay** (per-tenant dashboard, redeliver failed)
-- 11.5 **Webhook subscription management** (UI + API: subscribe URLs to events)
-- 11.6 **Inbound webhook receivers** (signature-verified endpoints for partners)
+- 11.1 ✅ **Event catalog** (`lead.*`, `deal.*` incl. `deal.won`, `task.*` incl. `task.completed`)
+- 11.2 ✅ **Transactional outbox** (`WebhookEvent` written in the change's txn; on_commit dispatch + beat sweep)
+- 11.3 ✅ **Outbound delivery** via Celery — **HMAC-SHA256 signed**, retries w/ exponential backoff
+- 11.4 ✅ **Delivery logs + replay** (read-only API + replay action)
+- 11.5 ✅ **Subscription management** (endpoint CRUD API + admin UI)
+- 11.6 ✅ **Inbound receivers** — token-in-URL identifies tenant, `X-Signature` HMAC verified,
+  `create_lead` action + inbound event log
+- (Frontend: admin Webhooks page — outbound endpoints + signing secret + deliveries/replay,
+  and inbound endpoints with receive URL + secret)
 
 ## 🔭 Phase 12 — OAuth, SSO & Connection Framework
 - 12.1 **Social login / SSO** (Google, Microsoft) via django-allauth

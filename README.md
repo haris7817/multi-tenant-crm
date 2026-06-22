@@ -73,4 +73,5 @@ your hosts file (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 - [x] **Phase 8** — CRM feature depth (notes, attachments, full-text search, CSV import/export, bulk actions, saved views, custom fields, tags)
 - [x] **Phase 9** — Notifications & collaboration (in-app feed, real-time WebSockets via Channels, assignment notifications, task reminders, email digests)
 - [x] **Phase 10** — Public API platform (per-tenant API keys + scopes, `/api/v1/`, per-key throttling, consistent error envelope, idempotency keys, OpenAPI/Redoc docs)
+- [x] **Phase 11** — Webhooks (outbound: catalog, transactional outbox, HMAC-signed delivery, retries, logs/replay, subscriptions; inbound: signature-verified receivers)
 ```

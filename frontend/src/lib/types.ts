@@ -147,6 +147,46 @@ export interface ApiKeyCreated extends ApiKey {
   key: string; // raw secret, shown once
 }
 
+export const WEBHOOK_EVENTS = [
+  "lead.created", "lead.updated", "lead.deleted",
+  "deal.created", "deal.updated", "deal.deleted", "deal.won",
+  "task.created", "task.updated", "task.deleted", "task.completed",
+] as const;
+
+export interface WebhookEndpoint {
+  id: number;
+  url: string;
+  events: string[];
+  description: string;
+  is_active: boolean;
+  secret: string;
+  created_at: string;
+}
+
+export interface WebhookDelivery {
+  id: number;
+  endpoint: number;
+  event: number;
+  event_type: string;
+  status: "pending" | "success" | "failed";
+  attempts: number;
+  response_status: number | null;
+  error: string;
+  last_attempt_at: string | null;
+  created_at: string;
+}
+
+export interface InboundEndpoint {
+  id: number;
+  source: string;
+  action: string;
+  is_active: boolean;
+  token: string;
+  secret: string;
+  receive_url: string;
+  created_at: string;
+}
+
 export type NotificationType =
   | "assigned"
   | "task_due"

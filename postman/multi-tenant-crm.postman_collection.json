@@ -41,7 +41,11 @@
     { "key": "savedview_id", "value": "" },
     { "key": "notification_id", "value": "" },
     { "key": "api_key", "value": "" },
-    { "key": "apikey_id", "value": "" }
+    { "key": "apikey_id", "value": "" },
+    { "key": "webhook_id", "value": "" },
+    { "key": "delivery_id", "value": "" },
+    { "key": "inbound_token", "value": "" },
+    { "key": "inbound_secret", "value": "" }
   ],
   "item": [
     {
@@ -798,6 +802,142 @@
             "url": { "raw": "{{baseUrl}}/api/v1/leads/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "leads", ""] },
             "body": { "mode": "raw", "raw": "{\n  \"name\": \"Created via API key\"\n}" },
             "description": "Write scope required. Re-sending with the same Idempotency-Key returns the first response (header X-Idempotent-Replay: true) instead of creating a duplicate."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks — outbound (Phase 11)",
+      "description": "Subscribe URLs to events; we POST signed payloads (X-Webhook-Signature = HMAC-SHA256 of body with the endpoint secret), with retries + delivery logs + replay.",
+      "item": [
+        {
+          "name": "List webhook endpoints",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json().results || [];",
+                  "if (r.length) pm.collectionVariables.set('webhook_id', r[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/webhooks/", "host": ["{{baseUrl}}"], "path": ["api", "webhooks", ""] }
+          }
+        },
+        {
+          "name": "Create webhook endpoint (Admin+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.collectionVariables.set('webhook_id', pm.response.json().id);"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/webhooks/", "host": ["{{baseUrl}}"], "path": ["api", "webhooks", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"url\": \"https://example.com/webhooks/crm\",\n  \"events\": [\"lead.created\", \"deal.won\"]\n}" },
+            "description": "Returns a signing `secret` — give it to the receiver to verify signatures."
+          }
+        },
+        {
+          "name": "Delete webhook endpoint (Admin+)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/webhooks/{{webhook_id}}/", "host": ["{{baseUrl}}"], "path": ["api", "webhooks", "{{webhook_id}}", ""] }
+          }
+        },
+        {
+          "name": "List deliveries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var r = pm.response.json().results || [];",
+                  "if (r.length) pm.collectionVariables.set('delivery_id', r[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/webhook-deliveries/", "host": ["{{baseUrl}}"], "path": ["api", "webhook-deliveries", ""] }
+          }
+        },
+        {
+          "name": "Replay a delivery",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/webhook-deliveries/{{delivery_id}}/replay/", "host": ["{{baseUrl}}"], "path": ["api", "webhook-deliveries", "{{delivery_id}}", "replay", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks — inbound (Phase 11)",
+      "description": "Partners POST INTO the CRM. The token (in the URL) identifies the tenant; the X-Signature header (HMAC-SHA256 of the body with the endpoint secret) is verified. No JWT/API key needed.",
+      "item": [
+        {
+          "name": "Create inbound endpoint (Admin+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.collectionVariables.set('inbound_token', j.token);",
+                  "pm.collectionVariables.set('inbound_secret', j.secret);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/inbound-endpoints/", "host": ["{{baseUrl}}"], "path": ["api", "inbound-endpoints", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"source\": \"typeform\",\n  \"action\": \"create_lead\"\n}" },
+            "description": "Saves the {{inbound_token}} and {{inbound_secret}} for the next request."
+          }
+        },
+        {
+          "name": "Send inbound event (signed)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Sign the raw body with HMAC-SHA256 using the inbound secret.",
+                  "var body = pm.request.body.raw;",
+                  "var secret = pm.collectionVariables.get('inbound_secret');",
+                  "var sig = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'X-Signature', value: 'sha256=' + sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/inbound/{{inbound_token}}/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inbound", "{{inbound_token}}", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Inbound Jane\",\n  \"email\": \"jane@example.com\",\n  \"company\": \"BuyCo\"\n}" },
+            "description": "The pre-request script computes X-Signature. Creates a lead on success (201). Tamper the body without re-signing to see a 401."
           }
         }
       ]

@@ -13,6 +13,7 @@ import type {
   AuditLog,
   CustomFieldDefinition,
   Deal,
+  InboundEndpoint,
   Lead,
   LeadsOverTimePoint,
   Member,
@@ -26,6 +27,8 @@ import type {
   StatusCount,
   Tag,
   Task,
+  WebhookDelivery,
+  WebhookEndpoint,
 } from "../lib/types";
 import { api } from "./client";
 
@@ -518,5 +521,103 @@ export function useRevokeApiKey() {
       await api.delete(`/api/api-keys/${id}/`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+// --- Phase 11: webhooks -----------------------------------------------------
+
+export function useWebhooks() {
+  return useQuery({
+    queryKey: ["webhooks"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<WebhookEndpoint>>("/api/webhooks/");
+      return data.results;
+    },
+  });
+}
+
+export function useCreateWebhook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      url: string;
+      events: string[];
+      description?: string;
+    }) => {
+      const { data } = await api.post<WebhookEndpoint>("/api/webhooks/", payload);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }),
+  });
+}
+
+export function useDeleteWebhook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/api/webhooks/${id}/`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhooks"] }),
+  });
+}
+
+export function useWebhookDeliveries() {
+  return useQuery({
+    queryKey: ["webhook-deliveries"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<WebhookDelivery>>(
+        "/api/webhook-deliveries/",
+      );
+      return data.results;
+    },
+    refetchInterval: 10_000,
+  });
+}
+
+export function useReplayDelivery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.post(`/api/webhook-deliveries/${id}/replay/`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["webhook-deliveries"] }),
+  });
+}
+
+// --- Phase 11.6: inbound webhooks -------------------------------------------
+
+export function useInboundEndpoints() {
+  return useQuery({
+    queryKey: ["inbound-endpoints"],
+    queryFn: async () => {
+      const { data } = await api.get<Paginated<InboundEndpoint>>(
+        "/api/inbound-endpoints/",
+      );
+      return data.results;
+    },
+  });
+}
+
+export function useCreateInboundEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { source: string; action: string }) => {
+      const { data } = await api.post<InboundEndpoint>(
+        "/api/inbound-endpoints/",
+        payload,
+      );
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inbound-endpoints"] }),
+  });
+}
+
+export function useDeleteInboundEndpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/api/inbound-endpoints/${id}/`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inbound-endpoints"] }),
   });
 }

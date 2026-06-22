@@ -12,6 +12,7 @@ const NAV = [
   { to: "/activity", label: "Activity", end: false },
   { to: "/members", label: "Members", end: false },
   { to: "/api-keys", label: "API Keys", end: false, adminOnly: true },
+  { to: "/webhooks", label: "Webhooks", end: false, adminOnly: true },
 ];
 
 export default function Layout() {

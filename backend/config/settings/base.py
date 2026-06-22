@@ -56,6 +56,7 @@ LOCAL_APPS = [
     "apps.analytics",
     "apps.notifications",
     "apps.apikeys",
+    "apps.webhooks",
 ]
 
 # "daphne" must come first so it overrides runserver with the ASGI dev server.
@@ -213,6 +214,11 @@ CELERY_BEAT_SCHEDULE = {
     "send-daily-digests": {
         "task": "apps.notifications.tasks.send_daily_digests",
         "schedule": crontab(hour=7, minute=30),
+    },
+    "sweep-webhook-outbox": {
+        # Safety net for the transactional outbox — redispatch missed events.
+        "task": "apps.webhooks.tasks.sweep_undispatched_events",
+        "schedule": crontab(minute="*/5"),
     },
 }
 

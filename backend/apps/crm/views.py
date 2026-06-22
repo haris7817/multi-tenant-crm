@@ -49,6 +49,7 @@ class LeadViewSet(TenantModelViewSet):
     # tenant filter per request (see note there).
     queryset = Lead.all_objects.all().prefetch_related("tags")
     serializer_class = LeadSerializer
+    webhook_resource = "lead"
     filterset_class = LeadFilter
     search_fields = ["name", "email", "company"]
     ordering_fields = ["created_at", "name", "status"]
@@ -153,6 +154,7 @@ class StageViewSet(TenantModelViewSet):
 class DealViewSet(TenantModelViewSet):
     queryset = Deal.all_objects.select_related("stage", "lead", "owner").all()
     serializer_class = DealSerializer
+    webhook_resource = "deal"
     filterset_class = DealFilter
     search_fields = ["title"]
     ordering_fields = ["created_at", "value", "expected_close_date"]
@@ -179,6 +181,16 @@ class DealViewSet(TenantModelViewSet):
 
             transaction.on_commit(lambda: send_deal_won_email.delay(deal.id))
 
+            # Emit the semantic deal.won webhook event.
+            from apps.webhooks.events import DEAL_WON
+            from apps.webhooks.services import emit_event
+
+            emit_event(
+                tenant=request.tenant,
+                event_type=DEAL_WON,
+                payload=DealSerializer(deal, context=self.get_serializer_context()).data,
+            )
+
         return Response(DealSerializer(deal, context=self.get_serializer_context()).data)
 
     @extend_schema(responses=DealSerializer(many=True))
@@ -203,6 +215,21 @@ class TaskViewSet(TenantModelViewSet):
     filterset_class = TaskFilter
     search_fields = ["title", "description"]
     ordering_fields = ["due_date", "created_at", "priority"]
+    webhook_resource = "task"
+
+    def perform_update(self, serializer):
+        was_done = serializer.instance.is_done
+        super().perform_update(serializer)
+        # Semantic event when a task transitions to done.
+        if not was_done and serializer.instance.is_done:
+            from apps.webhooks.events import TASK_COMPLETED
+            from apps.webhooks.services import emit_event
+
+            emit_event(
+                tenant=self.request.tenant,
+                event_type=TASK_COMPLETED,
+                payload={"id": serializer.instance.id, "title": serializer.instance.title},
+            )
 
 
 # --- Phase 8 viewsets -------------------------------------------------------

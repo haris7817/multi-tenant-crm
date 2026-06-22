@@ -9,6 +9,9 @@ ALLOWED_HOSTS = env(
     "DJANGO_ALLOWED_HOSTS",
     default=["localhost", "127.0.0.1", ".crm.local"],
 )
+# Internal compose service name (used by webhook self-delivery demos in dev).
+if "web" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = list(ALLOWED_HOSTS) + ["web"]
 
 # Vite dev server origin(s) for CORS.
 CORS_ALLOWED_ORIGINS = env.list(

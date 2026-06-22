@@ -28,6 +28,10 @@ class TenantModelViewSet(viewsets.ModelViewSet):
     # Set False on a viewset to skip audit logging for its writes.
     audit = True
 
+    # If set (e.g. "lead"), CRUD emits webhook events "<resource>.created" etc.
+    # Left None on infra viewsets (tags, webhooks, …) to avoid noise/recursion.
+    webhook_resource = None
+
     def get_queryset(self):
         # Scope to the active tenant HERE (per request). Subclasses declare
         # ``queryset`` using the UNSCOPED ``all_objects`` manager so the import-
@@ -63,6 +67,7 @@ class TenantModelViewSet(viewsets.ModelViewSet):
             extra["owner"] = user
         serializer.save(**extra)
         self._audit(AuditLog.Action.CREATED, serializer.instance)
+        self._emit("created", serializer.instance)
 
     def perform_update(self, serializer):
         # Snapshot the fields being written so we can diff old vs new.
@@ -73,11 +78,25 @@ class TenantModelViewSet(viewsets.ModelViewSet):
         self._audit(
             AuditLog.Action.UPDATED, serializer.instance, changes=diff(before, after)
         )
+        self._emit("updated", serializer.instance)
 
     def perform_destroy(self, instance):
         # Record before deleting so target_repr/pk are still available.
         self._audit(AuditLog.Action.DELETED, instance)
+        self._emit("deleted", instance)
         instance.delete()
+
+    def _emit(self, action, instance):
+        """Emit a webhook event for resources that opt in via ``webhook_resource``."""
+        if not self.webhook_resource:
+            return
+        from apps.webhooks.services import emit_event
+
+        emit_event(
+            tenant=self.request.tenant,
+            event_type=f"{self.webhook_resource}.{action}",
+            payload=_json_safe(self.get_serializer(instance).data),
+        )
 
     def _audit(self, action, instance, changes=None):
         if not self.audit:
@@ -93,3 +112,12 @@ class TenantModelViewSet(viewsets.ModelViewSet):
 
 def _has_field(model, name):
     return any(f.name == name for f in model._meta.get_fields())
+
+
+def _json_safe(data):
+    """Coerce DRF serializer data into plain JSON primitives for storage/transport."""
+    import json
+
+    from rest_framework.renderers import JSONRenderer
+
+    return json.loads(JSONRenderer().render(data))
