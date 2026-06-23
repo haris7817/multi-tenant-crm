@@ -187,6 +187,23 @@ export interface InboundEndpoint {
   created_at: string;
 }
 
+export interface BillingPlan {
+  key: string;
+  name: string;
+  price_cents: number;
+  max_leads: number | null;
+  max_members: number | null;
+}
+
+export interface BillingStatus {
+  plan: string;
+  plan_name: string;
+  status: string;
+  current_period_end: string | null;
+  usage: { leads: number; members: number };
+  limits: { leads: number | null; members: number | null };
+}
+
 export interface ConnectionProvider {
   key: string;
   label: string;

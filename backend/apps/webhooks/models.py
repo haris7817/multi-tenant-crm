@@ -89,6 +89,7 @@ class InboundEndpoint(TenantBaseModel):
 
     class Action(models.TextChoices):
         CREATE_LEAD = "create_lead", "Create lead"
+        LOG_EMAIL = "log_email", "Log email reply as a note"
 
     token = models.CharField(max_length=32, unique=True, db_index=True)
     secret = models.CharField(max_length=64)

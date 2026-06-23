@@ -4,6 +4,7 @@ import {
   useAttachments,
   useCustomFields,
   useCreateNote,
+  useEnrichLead,
   useNotes,
   useTags,
   useUpdateLead,
@@ -41,6 +42,7 @@ export default function LeadDetailDrawer({
   const allTags = useTags();
   const customFields = useCustomFields("lead");
   const updateLead = useUpdateLead();
+  const enrich = useEnrichLead();
 
   const [noteBody, setNoteBody] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -72,9 +74,21 @@ export default function LeadDetailDrawer({
             <h2 className="text-lg font-semibold text-slate-800">{lead.name}</h2>
             <p className="text-sm text-slate-500">{lead.company || "—"}</p>
           </div>
-          <button className="text-slate-400 hover:text-slate-600" onClick={onClose}>
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            {canWrite && (
+              <button
+                className="btn-ghost"
+                disabled={enrich.isPending}
+                onClick={() => enrich.mutate(lead.id)}
+                title="Fill company/details from the enrichment provider"
+              >
+                {enrich.isPending ? "Enriching…" : "✨ Enrich"}
+              </button>
+            )}
+            <button className="text-slate-400 hover:text-slate-600" onClick={onClose}>
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Tags */}

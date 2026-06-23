@@ -944,6 +944,113 @@
       ]
     },
     {
+      "name": "Billing (Phase 13)",
+      "description": "Stripe billing: per-tenant subscription, plan quotas (HTTP 402 when exceeded), Checkout, and signature-verified Stripe webhooks. Checkout/webhook need real Stripe keys to complete.",
+      "item": [
+        {
+          "name": "Billing status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/billing/", "host": ["{{baseUrl}}"], "path": ["api", "billing", ""] },
+            "description": "Current plan, status, usage (leads/members) vs limits."
+          }
+        },
+        {
+          "name": "List plans",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/billing/plans/", "host": ["{{baseUrl}}"], "path": ["api", "billing", "plans", ""] }
+          }
+        },
+        {
+          "name": "Create checkout session (Admin+)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/billing/checkout/", "host": ["{{baseUrl}}"], "path": ["api", "billing", "checkout", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"plan\": \"pro\"\n}" },
+            "description": "Returns a Stripe Checkout URL. 400 if no Stripe price configured."
+          }
+        },
+        {
+          "name": "Stripe webhook (informational)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Stripe-Signature", "value": "<stripe signature>" }],
+            "url": { "raw": "{{baseUrl}}/api/billing/stripe/webhook/", "host": ["{{baseUrl}}"], "path": ["api", "billing", "stripe", "webhook", ""] },
+            "body": { "mode": "raw", "raw": "{}" },
+            "description": "Stripe -> us. Signature-verified; updates the Subscription. Sent by Stripe, not by hand."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connectors (Phase 13)",
+      "description": "Lead enrichment + inbound email-to-note. (Slack deal-won notifications fire automatically from 'Deals > Move deal to stage' when the tenant has Slack connected.)",
+      "item": [
+        {
+          "name": "Enrich lead",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/leads/{{lead_id}}/enrich/", "host": ["{{baseUrl}}"], "path": ["api", "leads", "{{lead_id}}", "enrich", ""] },
+            "description": "Fills company/details from the enrichment provider (default derives company from the lead's email domain)."
+          }
+        },
+        {
+          "name": "Create inbound email endpoint (Admin+)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.collectionVariables.set('inbound_token', j.token);",
+                  "pm.collectionVariables.set('inbound_secret', j.secret);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/inbound-endpoints/", "host": ["{{baseUrl}}"], "path": ["api", "inbound-endpoints", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"source\": \"sendgrid\",\n  \"action\": \"log_email\"\n}" },
+            "description": "An email provider's inbound-parse posts here; replies become notes on the matching lead. Saves {{inbound_token}}/{{inbound_secret}}."
+          }
+        },
+        {
+          "name": "Send inbound email reply (signed)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var body = pm.request.body.raw;",
+                  "var secret = pm.collectionVariables.get('inbound_secret');",
+                  "var sig = CryptoJS.HmacSHA256(body, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.request.headers.upsert({ key: 'X-Signature', value: 'sha256=' + sig });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/inbound/{{inbound_token}}/", "host": ["{{baseUrl}}"], "path": ["api", "v1", "inbound", "{{inbound_token}}", ""] },
+            "body": { "mode": "raw", "raw": "{\n  \"from\": \"jane@buyco.example\",\n  \"subject\": \"Re: proposal\",\n  \"body\": \"Looks good, let's proceed!\"\n}" },
+            "description": "The 'from' must match an existing lead's email; the email is logged as a note. 404 if no match."
+          }
+        }
+      ]
+    },
+    {
       "name": "Integrations & SSO (Phase 12)",
       "description": "Connect external services (OAuth) with encrypted token storage, plus Sign in with Google. Tokens are never exposed by the API. Connect/Google flows need real provider credentials to complete; the endpoints/validation are exercisable as-is.",
       "item": [

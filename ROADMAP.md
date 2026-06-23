@@ -129,16 +129,22 @@ The most useful integration primitive.
   authorize → callback → token exchange → refresh → disconnect; tokens never exposed over API
 - (Frontend: Integrations page — connect/disconnect, status; OAuth callback handler)
 
-## 🔭 Phase 13 — External Connectors (the "connect with other apps" payoff)
+## ✅ Phase 13 — External Connectors (13.4 deferred)
 Built on 10–12. Each is a sub-phase.
-- 13.1 **Stripe billing** — subscriptions per tenant, plans/quotas, metered usage,
-  inbound Stripe webhooks, dunning (the SaaS's own monetization)
-- 13.2 **Real email provider** — SendGrid/SES/Mailgun outbound + **inbound parse**
-  to log replies onto leads
-- 13.3 **Slack / Teams** — "deal won → #sales" notifications, slash commands
-- 13.4 **Google / Microsoft** — calendar sync for tasks, email sync onto leads
-- 13.5 **Zapier / Make app** — expose triggers (new lead) + actions (built on 10+11)
-- 13.6 **Lead enrichment** (Clearbit/Apollo) + **telephony** (Twilio SMS/click-to-call)
+- 13.1 ✅ **Stripe billing** — `Subscription` per tenant, plan catalog + **quota
+  enforcement (HTTP 402)**, Checkout session, **signature-verified Stripe webhooks**
+  driving subscription state; billing UI. *(metered usage + dunning: future)*
+- 13.2 ✅ **Real email provider** — SMTP env config (SendGrid/SES/Mailgun) +
+  **inbound parse** action (`log_email`) → note on the matching lead
+- 13.3 ✅ **Slack** — "deal won → channel" via the tenant's Slack connection token
+  (Celery, mockable). *(Teams + slash commands: future)*
+- 13.4 ⏸️ **Google / Microsoft sync** — deferred: needs live OAuth + heavy
+  bidirectional calendar/email sync infra (connection framework is ready for it)
+- 13.5 📄 **Zapier / Make** — no new code needed: Zapier connects via the Phase 10
+  API keys (`/api/v1/`) for actions + Phase 11 webhooks for triggers (documented)
+- 13.6 ✅ **Lead enrichment** — pluggable provider (default: domain-based, works
+  offline); `POST /api/leads/{id}/enrich/` + "✨ Enrich" in the lead drawer.
+  *(Clearbit/Apollo + Twilio telephony: future)*
 
 ## 🔭 Phase 14 — AI Assistant / Chatbot
 A conversational assistant over each tenant's CRM data.
@@ -212,6 +218,18 @@ they aren't forgotten. (The big future themes are Phases 13–16 above.)
 - 🔭 **Attachment access control** (8.2) — `/media/` URLs aren't permission-checked;
   prod needs signed or auth-gated downloads (the listing API *is* tenant-scoped).
 - 🔭 **Notifications**: no per-user email/WS preferences; digests email all members.
+
+**Connectors (Phase 13)**
+- ⏸️ **13.4 Google / Microsoft sync** — deferred (live OAuth + bidirectional
+  calendar/email sync); the connection framework is ready for it.
+- 🔭 **Stripe**: metered/usage-based billing + dunning (failed-payment) emails;
+  customer portal link; proration on plan changes.
+- 🔭 **Slack**: Microsoft Teams + slash commands; channel picker UI (channel is
+  read from the connection metadata, defaults to `#sales`).
+- 🔭 **Enrichment**: real provider (Clearbit/Apollo) behind `_lookup`; **Twilio**
+  telephony (SMS / click-to-call) not built.
+- 🔭 **Email**: outbound provider is SMTP-config-only (no provider SDK / event
+  tracking); inbound parse maps by sender email only (no threading).
 
 **Quality**
 - 🔭 **Frontend tests** (Vitest/Playwright) — none yet (planned in Phase 15).

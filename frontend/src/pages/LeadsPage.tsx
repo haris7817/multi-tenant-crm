@@ -1,3 +1,4 @@
+import { Download, Plus, Search, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
 import {
@@ -78,16 +79,21 @@ export default function LeadsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Leads</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1>Leads</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Search, segment, and manage your leads.
+          </p>
+        </div>
         <div className="flex gap-2">
           <button className="btn-ghost" onClick={exportCsv}>
-            Export CSV
+            <Download size={15} /> Export
           </button>
           {canWrite && (
             <>
               <button className="btn-ghost" onClick={() => fileRef.current?.click()}>
-                Import CSV
+                <Upload size={15} /> Import
               </button>
               <input
                 ref={fileRef}
@@ -110,7 +116,7 @@ export default function LeadsPage() {
                   setShowForm(true);
                 }}
               >
-                + New lead
+                <Plus size={15} /> New lead
               </button>
             </>
           )}
@@ -118,12 +124,18 @@ export default function LeadsPage() {
       </div>
 
       <div className="mb-4 flex gap-3">
-        <input
-          className="input max-w-xs"
-          placeholder="Search (full-text)…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="relative max-w-xs flex-1">
+          <Search
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            className="input pl-9"
+            placeholder="Search (full-text)…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
         <select
           className="input max-w-[160px]"
           value={status}

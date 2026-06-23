@@ -50,6 +50,23 @@ class LeadViewSet(TenantModelViewSet):
     queryset = Lead.all_objects.all().prefetch_related("tags")
     serializer_class = LeadSerializer
     webhook_resource = "lead"
+
+    def perform_create(self, serializer):
+        from apps.billing.quota import check_quota
+
+        check_quota(self.request.tenant, "leads")  # plan limit (402 if exceeded)
+        super().perform_create(serializer)
+
+    @action(detail=True, methods=["post"])
+    def enrich(self, request, pk=None):
+        """13.6 — enrich a lead's company/details from the enrichment provider."""
+        from apps.connectors.enrichment import enrich_lead
+
+        lead = self.get_object()
+        enrich_lead(lead)
+        return Response(
+            LeadSerializer(lead, context=self.get_serializer_context()).data
+        )
     filterset_class = LeadFilter
     search_fields = ["name", "email", "company"]
     ordering_fields = ["created_at", "name", "status"]
@@ -190,6 +207,11 @@ class DealViewSet(TenantModelViewSet):
                 event_type=DEAL_WON,
                 payload=DealSerializer(deal, context=self.get_serializer_context()).data,
             )
+
+            # Announce in Slack if the tenant has it connected (13.3).
+            from apps.connectors.tasks import post_deal_won_to_slack
+
+            transaction.on_commit(lambda: post_deal_won_to_slack.delay(deal.id))
 
         return Response(DealSerializer(deal, context=self.get_serializer_context()).data)
 

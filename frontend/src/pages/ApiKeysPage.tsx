@@ -29,7 +29,7 @@ export default function ApiKeysPage() {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-2xl font-bold text-slate-800">API Keys</h1>
+        <h1>API Keys</h1>
         <p className="text-sm text-slate-500">
           Programmatic access for external apps. Use header{" "}
           <code>Authorization: Api-Key &lt;key&gt;</code> against{" "}

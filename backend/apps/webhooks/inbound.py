@@ -91,4 +91,34 @@ def inbound_receiver(request, token):
         )
         return Response({"status": "ok", "lead_id": lead.id}, status=201)
 
+    if endpoint.action == InboundEndpoint.Action.LOG_EMAIL:
+        # 13.2 — an email provider's inbound-parse posts {from, subject, body};
+        # we attach it as a note on the matching lead.
+        from django.contrib.contenttypes.models import ContentType
+
+        from apps.crm.models import Note
+
+        sender = (data.get("from") or "").strip().lower()
+        lead = Lead.all_objects.filter(tenant=endpoint.tenant, email__iexact=sender).first()
+        if not lead:
+            InboundEvent.all_objects.create(
+                tenant=endpoint.tenant, endpoint=endpoint,
+                status=InboundEvent.Status.ERROR, payload=data,
+                error=f"No lead with email {sender}",
+            )
+            return Response({"detail": "No matching lead."}, status=404)
+
+        body = f"📧 {data.get('subject', '(no subject)')}\n\n{data.get('body', '')}"
+        Note.all_objects.create(
+            tenant=endpoint.tenant,
+            target_type=ContentType.objects.get_for_model(Lead),
+            target_id=lead.id,
+            body=body,
+        )
+        InboundEvent.all_objects.create(
+            tenant=endpoint.tenant, endpoint=endpoint,
+            status=InboundEvent.Status.PROCESSED, payload=data,
+        )
+        return Response({"status": "ok", "lead_id": lead.id}, status=201)
+
     return Response({"detail": "Unsupported action."}, status=400)

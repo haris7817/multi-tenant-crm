@@ -4,6 +4,7 @@ import { useAuth } from "./auth/AuthContext";
 import Layout from "./components/Layout";
 import ActivityPage from "./pages/ActivityPage";
 import ApiKeysPage from "./pages/ApiKeysPage";
+import BillingPage from "./pages/BillingPage";
 import DashboardPage from "./pages/DashboardPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import LeadsPage from "./pages/LeadsPage";
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="webhooks" element={<WebhooksPage />} />
         <Route path="integrations" element={<IntegrationsPage />} />
         <Route path="oauth/callback" element={<OAuthCallbackPage />} />
+        <Route path="billing" element={<BillingPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

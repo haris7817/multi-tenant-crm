@@ -33,12 +33,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="card w-full max-w-sm p-6">
-        <h1 className="mb-1 text-xl font-bold text-brand-700">Multi-Tenant CRM</h1>
-        <p className="mb-5 text-sm text-slate-500">Sign in to your workspace.</p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 via-brand-50/40 to-ai-100/30 px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-lg font-extrabold text-white shadow-pop">
+            ⬡
+          </div>
+          <h1 className="mt-3 text-2xl font-bold text-slate-900">Welcome back</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Sign in to your CRM workspace.
+          </p>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <div className="card p-6">
+          <form onSubmit={onSubmit} className="space-y-4">
           <div>
             <label className="label">Workspace</label>
             <input
@@ -93,6 +101,11 @@ export default function LoginPage() {
             }
           }}
         />
+        </div>
+
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Demo: workspace <code>acme</code> · owner@acme.crm.local · password123
+        </p>
       </div>
     </div>
   );

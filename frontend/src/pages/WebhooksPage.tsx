@@ -48,7 +48,7 @@ export default function WebhooksPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">Webhooks</h1>
+        <h1>Webhooks</h1>
         <p className="text-sm text-slate-500">
           We POST signed events to your URL. Verify with the{" "}
           <code>X-Webhook-Signature</code> (HMAC-SHA256 of the body using the secret).

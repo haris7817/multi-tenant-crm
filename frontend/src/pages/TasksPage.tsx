@@ -29,7 +29,7 @@ export default function TasksPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Tasks</h1>
+        <h1>Tasks</h1>
         {canWrite && (
           <button className="btn-primary" onClick={() => setShowForm(true)}>
             + New task

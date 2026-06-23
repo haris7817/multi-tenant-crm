@@ -11,6 +11,8 @@ import type {
   AppNotification,
   Attachment,
   AuditLog,
+  BillingPlan,
+  BillingStatus,
   Connection,
   ConnectionProvider,
   CustomFieldDefinition,
@@ -81,6 +83,17 @@ export function useDeleteLead() {
   return useMutation({
     mutationFn: async (id: number) => {
       await api.delete(`/api/leads/${id}/`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
+  });
+}
+
+export function useEnrichLead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const { data } = await api.post<Lead>(`/api/leads/${id}/enrich/`);
+      return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["leads"] }),
   });
@@ -686,6 +699,40 @@ export function useDisconnect() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["connections"] });
       qc.invalidateQueries({ queryKey: ["connection-providers"] });
+    },
+  });
+}
+
+// --- Phase 13.1: billing ----------------------------------------------------
+
+export function useBillingStatus() {
+  return useQuery({
+    queryKey: ["billing"],
+    queryFn: async () => {
+      const { data } = await api.get<BillingStatus>("/api/billing/");
+      return data;
+    },
+  });
+}
+
+export function useBillingPlans() {
+  return useQuery({
+    queryKey: ["billing-plans"],
+    queryFn: async () => {
+      const { data } = await api.get<BillingPlan[]>("/api/billing/plans/");
+      return data;
+    },
+  });
+}
+
+export function useCheckout() {
+  return useMutation({
+    mutationFn: async (plan: string) => {
+      const { data } = await api.post<{ checkout_url: string }>(
+        "/api/billing/checkout/",
+        { plan },
+      );
+      return data;
     },
   });
 }

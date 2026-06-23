@@ -32,7 +32,9 @@ def _code_for(exc) -> str:
     for klass, code in _CODES.items():
         if isinstance(exc, klass):
             return code
-    return "error"
+    # Fall back to a custom APIException's own machine code (e.g. quota_exceeded).
+    code = getattr(exc, "default_code", None)
+    return str(code) if code else "error"
 
 
 def custom_exception_handler(exc, context):

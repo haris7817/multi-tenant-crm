@@ -136,6 +136,9 @@ class MemberViewSet(
         return [HasTenantRole(Role.ADMIN)()]
 
     def create(self, request, *args, **kwargs):
+        from apps.billing.quota import check_quota
+
+        check_quota(request.tenant, "members")  # plan limit (402 if exceeded)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         membership = serializer.save()

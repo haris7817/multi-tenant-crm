@@ -19,7 +19,7 @@ export default function MembersPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Members</h1>
+        <h1>Members</h1>
         {canManage && (
           <button className="btn-primary" onClick={() => setShowInvite(true)}>
             + Invite member

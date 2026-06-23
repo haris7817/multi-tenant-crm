@@ -58,6 +58,8 @@ LOCAL_APPS = [
     "apps.apikeys",
     "apps.webhooks",
     "apps.connections",
+    "apps.billing",
+    "apps.connectors",
 ]
 
 # "daphne" must come first so it overrides runserver with the ASGI dev server.
@@ -258,9 +260,20 @@ OAUTH_PROVIDERS = {
     },
 }
 
-# Email — console backend by default (Phase 5 may swap to SMTP).
+# Stripe billing (Phase 13.1). Empty in dev; set for real checkout/webhooks.
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_PRICES = {"pro": env("STRIPE_PRICE_PRO", default="")}
+
+# Email (13.2) — console by default; set EMAIL_BACKEND=...smtp... + the SMTP vars
+# below for a real provider (SendGrid/SES/Mailgun all speak SMTP).
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
 )
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="crm@example.com")
