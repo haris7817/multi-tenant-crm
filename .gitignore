@@ -20,3 +20,6 @@ frontend/dist/
 .DS_Store
 .idea/
 .vscode/
+
+# User uploads (Phase 8)
+backend/media/

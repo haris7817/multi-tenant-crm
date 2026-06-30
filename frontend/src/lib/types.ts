@@ -51,6 +51,9 @@ export interface Lead {
   owner: number | null;
   owner_email: string | null;
   is_stale: boolean;
+  tags: number[];
+  tags_detail: Tag[];
+  custom: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -81,6 +84,158 @@ export interface Deal {
 export interface PipelineColumn {
   stage: Stage;
   deals: Deal[];
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  color: string;
+}
+
+export interface Note {
+  id: number;
+  body: string;
+  author: number | null;
+  author_email: string | null;
+  target_model: string;
+  target_id: number;
+  created_at: string;
+}
+
+export interface Attachment {
+  id: number;
+  url: string | null;
+  filename: string;
+  uploaded_by: number | null;
+  target_model: string;
+  target_id: number;
+  created_at: string;
+}
+
+export type CustomFieldType = "text" | "number" | "date" | "select";
+
+export interface CustomFieldDefinition {
+  id: number;
+  entity: "lead" | "deal";
+  key: string;
+  label: string;
+  field_type: CustomFieldType;
+  options: string[];
+}
+
+export interface SavedView {
+  id: number;
+  entity: string;
+  name: string;
+  params: Record<string, string>;
+  created_at: string;
+}
+
+export interface ApiKey {
+  id: number;
+  name: string;
+  prefix: string;
+  scopes: string[];
+  is_active: boolean;
+  created_by_email: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  key: string; // raw secret, shown once
+}
+
+export const WEBHOOK_EVENTS = [
+  "lead.created", "lead.updated", "lead.deleted",
+  "deal.created", "deal.updated", "deal.deleted", "deal.won",
+  "task.created", "task.updated", "task.deleted", "task.completed",
+] as const;
+
+export interface WebhookEndpoint {
+  id: number;
+  url: string;
+  events: string[];
+  description: string;
+  is_active: boolean;
+  secret: string;
+  created_at: string;
+}
+
+export interface WebhookDelivery {
+  id: number;
+  endpoint: number;
+  event: number;
+  event_type: string;
+  status: "pending" | "success" | "failed";
+  attempts: number;
+  response_status: number | null;
+  error: string;
+  last_attempt_at: string | null;
+  created_at: string;
+}
+
+export interface InboundEndpoint {
+  id: number;
+  source: string;
+  action: string;
+  is_active: boolean;
+  token: string;
+  secret: string;
+  receive_url: string;
+  created_at: string;
+}
+
+export interface BillingPlan {
+  key: string;
+  name: string;
+  price_cents: number;
+  max_leads: number | null;
+  max_members: number | null;
+}
+
+export interface BillingStatus {
+  plan: string;
+  plan_name: string;
+  status: string;
+  current_period_end: string | null;
+  usage: { leads: number; members: number };
+  limits: { leads: number | null; members: number | null };
+}
+
+export interface ConnectionProvider {
+  key: string;
+  label: string;
+  configured: boolean;
+  connected: boolean;
+}
+
+export interface Connection {
+  id: number;
+  provider: string;
+  status: "connected" | "disconnected" | "error";
+  account_email: string;
+  scopes: string;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export type NotificationType =
+  | "assigned"
+  | "task_due"
+  | "deal_won"
+  | "mention"
+  | "system";
+
+export interface AppNotification {
+  id: number;
+  type: NotificationType;
+  message: string;
+  target_model: string | null;
+  target_id: number | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 export type Priority = "low" | "medium" | "high";

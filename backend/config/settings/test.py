@@ -19,3 +19,6 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 
 # Local in-memory cache so tests don't depend on (or pollute) Redis.
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+# In-memory channel layer so WebSocket tests don't need Redis.
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}

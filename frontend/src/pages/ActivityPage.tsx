@@ -34,7 +34,7 @@ export default function ActivityPage() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Activity</h1>
+        <h1>Activity</h1>
         <select
           className="input max-w-[160px]"
           value={action}

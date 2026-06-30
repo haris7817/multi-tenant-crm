@@ -21,6 +21,10 @@ class IsTenantMember(BasePermission):
         token = getattr(request, "auth", None)
         if tenant is None or not (user and user.is_authenticated) or token is None:
             return False
+        # Only JWT tokens carry claims; non-JWT auth (e.g. an API key) is not a
+        # "tenant member" by this check.
+        if not hasattr(token, "get"):
+            return False
         if token.get("tenant_id") != tenant.id:
             return False
         # Expose the caller's role for downstream checks / views.

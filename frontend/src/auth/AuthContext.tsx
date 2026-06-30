@@ -15,6 +15,7 @@ interface AuthContextValue {
   auth: AuthState | null;
   isAuthenticated: boolean;
   login: (slug: string, email: string, password: string) => Promise<void>;
+  loginWithGoogle: (slug: string, credential: string) => Promise<void>;
   logout: () => void;
   hasRole: (min: Role) => boolean;
 }
@@ -32,34 +33,51 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuthState] = useState<AuthState | null>(() => getAuth());
 
+  // Shared: turn a token response into stored auth state (+ fetch tenant name).
+  const persist = useCallback(async (slug: string, data: any) => {
+    const headers = { "X-Tenant": slug };
+    let tenantName = slug;
+    try {
+      const t = await axios.get("/api/tenant/", { headers });
+      tenantName = t.data.name;
+    } catch {
+      /* fall back to slug */
+    }
+    const state: AuthState = {
+      slug,
+      tenantName,
+      email: data.email,
+      role: data.role,
+      access: data.access,
+      refresh: data.refresh,
+    };
+    setAuth(state);
+    setAuthState(state);
+  }, []);
+
   const login = useCallback(
     async (slug: string, email: string, password: string) => {
       // Same-origin call; the Vite proxy maps X-Tenant -> Host subdomain.
-      const headers = { "X-Tenant": slug };
       const { data } = await axios.post(
         "/api/auth/login/",
         { email, password },
-        { headers },
+        { headers: { "X-Tenant": slug } },
       );
-      let tenantName = slug;
-      try {
-        const t = await axios.get("/api/tenant/", { headers });
-        tenantName = t.data.name;
-      } catch {
-        /* fall back to slug */
-      }
-      const state: AuthState = {
-        slug,
-        tenantName,
-        email: data.email,
-        role: data.role,
-        access: data.access,
-        refresh: data.refresh,
-      };
-      setAuth(state);
-      setAuthState(state);
+      await persist(slug, data);
     },
-    [],
+    [persist],
+  );
+
+  const loginWithGoogle = useCallback(
+    async (slug: string, credential: string) => {
+      const { data } = await axios.post(
+        "/api/auth/google/",
+        { credential },
+        { headers: { "X-Tenant": slug } },
+      );
+      await persist(slug, data);
+    },
+    [persist],
   );
 
   const logout = useCallback(() => {
@@ -72,11 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       auth,
       isAuthenticated: !!auth,
       login,
+      loginWithGoogle,
       logout,
       hasRole: (min: Role) =>
         !!auth && ROLE_LEVEL[auth.role] >= ROLE_LEVEL[min],
     }),
-    [auth, login, logout],
+    [auth, login, loginWithGoogle, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

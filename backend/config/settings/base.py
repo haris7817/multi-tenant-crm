@@ -35,11 +35,13 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",  # full-text search (Phase 8.3)
 ]
 
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "channels",
     "corsheaders",
     "drf_spectacular",
     "django_filters",
@@ -52,9 +54,16 @@ LOCAL_APPS = [
     "apps.activity",
     "apps.emails",
     "apps.analytics",
+    "apps.notifications",
+    "apps.apikeys",
+    "apps.webhooks",
+    "apps.connections",
+    "apps.billing",
+    "apps.connectors",
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+# "daphne" must come first so it overrides runserver with the ASGI dev server.
+INSTALLED_APPS = ["daphne"] + DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 # -----------------------------------------------------------------------------
 # Middleware  (TenantMiddleware is added in Phase 1)
@@ -69,6 +78,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.tenants.middleware.TenantMiddleware",
+    "apps.common.middleware.IdempotencyMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -90,6 +100,17 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+
+# Channels / WebSockets (9.2)
+ASGI_APPLICATION = "config.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env("REDIS_WS_URL", default="redis://redis:6379/3")],
+        },
+    }
+}
 ASGI_APPLICATION = "config.asgi.application"
 
 # -----------------------------------------------------------------------------
@@ -128,6 +149,10 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# Media (user uploads — Phase 8 attachments). Swap to S3 in production.
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # -----------------------------------------------------------------------------
@@ -135,8 +160,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # -----------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.apikeys.authentication.ApiKeyAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_RATES": {
+        "apikey": env("API_KEY_THROTTLE_RATE", default="120/min"),
+    },
+    "EXCEPTION_HANDLER": "apps.common.exceptions.custom_exception_handler",
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
@@ -180,6 +210,19 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=2, minute=0),  # every day at 02:00 UTC
         "kwargs": {"days": 14},
     },
+    "remind-due-tasks-daily": {
+        "task": "apps.notifications.tasks.remind_due_tasks",
+        "schedule": crontab(hour=7, minute=0),  # 07:00 — morning reminders
+    },
+    "send-daily-digests": {
+        "task": "apps.notifications.tasks.send_daily_digests",
+        "schedule": crontab(hour=7, minute=30),
+    },
+    "sweep-webhook-outbox": {
+        # Safety net for the transactional outbox — redispatch missed events.
+        "task": "apps.webhooks.tasks.sweep_undispatched_events",
+        "schedule": crontab(minute="*/5"),
+    },
 }
 
 # -----------------------------------------------------------------------------
@@ -199,9 +242,38 @@ CORS_ALLOW_ALL_ORIGINS = env.bool("CORS_ALLOW_ALL_ORIGINS", default=DEBUG)
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 CORS_ALLOW_CREDENTIALS = True
 
-# Email — console backend by default (Phase 5 may swap to SMTP).
+# -----------------------------------------------------------------------------
+# Connections / OAuth (Phase 12)
+# -----------------------------------------------------------------------------
+# Field encryption key for stored secrets. Empty -> derived from SECRET_KEY (dev).
+FIELD_ENCRYPTION_KEY = env("FIELD_ENCRYPTION_KEY", default="")
+
+# Per-provider OAuth client credentials (kept out of code; empty = unconfigured).
+OAUTH_PROVIDERS = {
+    "google": {
+        "client_id": env("GOOGLE_CLIENT_ID", default=""),
+        "client_secret": env("GOOGLE_CLIENT_SECRET", default=""),
+    },
+    "slack": {
+        "client_id": env("SLACK_CLIENT_ID", default=""),
+        "client_secret": env("SLACK_CLIENT_SECRET", default=""),
+    },
+}
+
+# Stripe billing (Phase 13.1). Empty in dev; set for real checkout/webhooks.
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_PRICES = {"pro": env("STRIPE_PRICE_PRO", default="")}
+
+# Email (13.2) — console by default; set EMAIL_BACKEND=...smtp... + the SMTP vars
+# below for a real provider (SendGrid/SES/Mailgun all speak SMTP).
 EMAIL_BACKEND = env(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
 )
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="crm@example.com")
